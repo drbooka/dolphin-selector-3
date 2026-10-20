@@ -39,3 +39,7 @@ Optional folders on the SD card: `samples/` for WAV files (16-bit PCM), `dx7/` f
 - [Bedienungsanleitung](docs/Bedienungsanleitung.md): user manual with the full menu tree
 - [Projektbeschreibung](docs/Projektbeschreibung.md): architecture, version history, open hardware tests
 - [Änderungen](docs/changes/): change notes per version
+
+## License
+
+[MIT](LICENSE): free to use, modify and share, including in your own sketches, as long as the copyright notice is kept.
