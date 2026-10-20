@@ -32,7 +32,7 @@ A MicroPython sketch that turns the [AMYboard](https://amyboard.com) into a full
 
 | Language | Board file | Commented source (for reading) |
 |---|---|---|
-| English | [`src/sketch_v13.19_en.py`](src/sketch_v13.19_en.py) | [`src/sketch_src_en.py`](src/sketch_src_en.py) |
+| English | [`sketch_en.py`](sketch_en.py) | [`src/sketch_src_en.py`](src/sketch_src_en.py) |
 | German | [`sketch.py`](sketch.py) | [`src/sketch_src.py`](src/sketch_src.py) |
 
 The board files are shipped **without comments** (~260 KB): the commented versions are too large to compile on the board. Both editions run the same code and use the same state and scene files, so you can switch languages without losing settings.
