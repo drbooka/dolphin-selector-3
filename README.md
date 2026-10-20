@@ -30,7 +30,7 @@ A MicroPython sketch that turns the [AMYboard](https://amyboard.com) into a full
 1. Update the AMYboard firmware at [amyboard.com/editor](https://amyboard.com/editor).
 2. Load **`sketch.py`** from this repository in the editor and send it to the board.
 
-`sketch.py` is shipped **without comments** (~260 KB): the commented version is too large to compile on the board. For reading, use [`src/sketch_src.py`](src/sketch_src.py), which is the same code with comments.
+`sketch.py` is shipped **without comments** (~260 KB): the commented version is too larger. For reading, use [`src/sketch_src.py`](src/sketch_src.py), which is the same code with comments.
 
 Optional folders on the SD card: `samples/` for WAV files (16-bit PCM), `dx7/` for DX7 `.syx` banks.
 
