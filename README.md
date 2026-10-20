@@ -2,7 +2,7 @@
 
 A MicroPython sketch that turns the [AMYboard](https://amyboard.com) into a full Eurorack groovebox, fully playable on the module via a 128×128 OLED, rotary encoders and an optional joystick.
 
-**Version 13.19** · runs on current AMYboard firmware (AMY 1.2.16x or newer)
+**Version 13.19** · runs on current AMYboard firmware (AMY 1.2.16x or newer) · on-screen menus in **English or German**
 
 ## Features
 
@@ -28,14 +28,23 @@ A MicroPython sketch that turns the [AMYboard](https://amyboard.com) into a full
 ## Installation
 
 1. Update the AMYboard firmware at [amyboard.com/editor](https://amyboard.com/editor).
-2. Load **`sketch.py`** from this repository in the editor and send it to the board.
+2. Choose the board file for your language and send it to the board **as `sketch.py`**:
 
-`sketch.py` is shipped **without comments** (~260 KB): the commented version is larger. For reading, use [`src/sketch_src.py`](src/sketch_src.py), which is the same code with comments.
+| Language | Board file | Commented source (for reading) |
+|---|---|---|
+| English | [`src/sketch_v13.19_en.py`](src/sketch_v13.19_en.py) | [`src/sketch_src_en.py`](src/sketch_src_en.py) |
+| German | [`sketch.py`](sketch.py) | [`src/sketch_src.py`](src/sketch_src.py) |
+
+The board files are shipped **without comments** (~260 KB): the commented versions are too large to compile on the board. Both editions run the same code and use the same state and scene files, so you can switch languages without losing settings.
 
 Optional folders on the SD card: `samples/` for WAV files (16-bit PCM), `dx7/` for DX7 `.syx` banks.
 
-## Documentation (German)
+## Documentation
 
+English:
+- [User manual](docs/Manual_v13_en.md): all controls and the full menu tree
+
+German:
 - [Bedienungsanleitung](docs/Bedienungsanleitung.md): user manual with the full menu tree
 - [Projektbeschreibung](docs/Projektbeschreibung.md): architecture, version history, open hardware tests
 - [Änderungen](docs/changes/): change notes per version
