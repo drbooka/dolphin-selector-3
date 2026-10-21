@@ -1,6 +1,6 @@
 # ================================================================
 # DOLPHIN SELECTOR 3  -  AMYboard Eurorack Synth  -  sketch.py
-# Version 13.19 (2026-10-20) - DX7 banks, encoder buttons, notch/phaser, MIDI slices
+# Version 13.20 (2026-10-21) - wavefolder for CV LFO and CV ENV
 # ================================================================
 #
 # English edition: comments and all on-screen menus are in English.
@@ -70,6 +70,21 @@
 # STATE: /sd/dolphin_state.json (else flash). On first start the
 # v11 files (amyboard_state*.txt) are imported and NOT deleted.
 # Scenes: dolphin_scenes.json.
+#
+# NEW IN v13.20:
+#   - WAVEFOLDER LFO: MODULAR > CV LFO now has FOLD (OFF/CLIP/FOLD/
+#     CLIP+FOLD), LFO DRIVE and FOLD MIX. The waveshaper from v13.16 sits on
+#     every AMY oscillator, including LFO synth 20 that set_cv_out routes to
+#     OUT1/OUT2 - folding happens inside AMY, no Python load.
+#     DEPTH sits before the folder (like the input level of a real
+#     wavefolder), LFO DRIVE adds more gain.
+#   - FOLD MOD: CV IN1 or IN2 shifts LFO DRIVE by up to +-2 octaves
+#     (MOD DEPTH, 5 V = full swing), updated every 30 ms.
+#   - LFO DRIVE as a macro and fixed encoder (like 303 DRIVE).
+#   - Preview of the folded wave at the top of the CV LFO page (approximate).
+#   - CV ENV also gets FOLD, ENV DRIVE and FOLD MIX.
+#   HW TEST: does AMY fold on the CV path (scope on OUT1)? Level at
+#            DEPTH 1.0 + drive (peaks up to +-10 V?), ENV fold negative?
 #
 # NEW IN v13.19:
 #   - DX7 BANKS FROM SD: patch browser > DX7 FROM SD lists .SYX files from
@@ -351,7 +366,7 @@ try:
 except Exception:
     _random = None
 
-VERSION = "13.19"
+VERSION = "13.20"
 
 
 # ================================================================
@@ -1288,6 +1303,9 @@ def default_state():
         "macro": ["cut", "res", "rvL", "lvl"],
         # Eurorack
         "eur": 0, "qscale": 1, "cvsrc": [0, 0], "lfo": [0, 0.5, 0.5],
+        # v13.20 wavefolder: LFO [type, drive, mix, mod source, mod depth],
+        # ENV [type, drive, mix]
+        "lfof": [0, 4.0, 1.0, 0, 0.5], "envf": [0, 4.0, 1.0],
         "env": [10, 300, 0.5], "cal": [[0.0, 1.0], [0.0, 1.0]],
         # Sequencer
         "tempo": 108, "run": 0, "clock": 0, "swing": 0, "sel": 0,
@@ -1523,6 +1541,13 @@ def sanitize():
     S["dfast"] = 1 if S["dfast"] else 0
     S["sqm"] = 1 if S["sqm"] else 0
     S["vlf"] = clamp_int(S["vlf"], 50, 400)
+    for key in ("lfof", "envf"):
+        ff = S[key]
+        ff[0] = clamp_int(ff[0], 0, len(DIST_TYPES) - 1)
+        ff[1] = clamp(ff[1], DIST_DRIVE_MIN, DIST_DRIVE_MAX)
+        ff[2] = clamp(ff[2], 0.0, 1.0)
+    S["lfof"][3] = clamp_int(S["lfof"][3], 0, 2)
+    S["lfof"][4] = clamp(S["lfof"][4], 0.0, 1.0)
     _sanitize_sampler()
 
 
@@ -2977,6 +3002,7 @@ def cvmod_setup():
                  wave=_wave_const(0), freq=0, phase=0.25,
                  bp0="%d,1,%d,0" % (en[0], en[1]), amp=en[2])
         _cv_synths_ready = True
+        cvfold_apply(True)        # v13.20: wavefolder of the CV synths
     except Exception as e:
         print("CVMOD SETUP", e)
 
@@ -2999,6 +3025,95 @@ def cvmod_update_env():
         amy.send(synth=CVMOD_ENV_SYNTH, bp0="%d,1,%d,0" % (en[0], en[1]), amp=en[2])
     except Exception as e:
         print("CVMOD ENV", e)
+
+
+# ---------------- Wavefolder for CV LFO / CV ENV (v13.20) ----------------
+# The waveshaper from v13.16 (dist_clip/dist_fold/dist_drive/dist_mix) sits
+# on every AMY oscillator - including synths 20 (LFO) and 21 (ENV), which
+# set_cv_out routes to OUT1/OUT2. The folding happens inside AMY.
+# The amplitude (DEPTH) acts BEFORE the shaper: it sets how far the wave
+# runs into the folder (like the input level of a real wavefolder), DRIVE
+# adds more gain. MIX blends between smooth and folded.
+# FOLD MOD: CV IN1/IN2 shifts the LFO drive by up to +-2 octaves
+# (factor 4 at MOD DEPTH 1, 5 V = full swing), every FOLD_MOD_MS.
+
+FOLD_MOD_NAMES = ["OFF", "CV IN1", "CV IN2"]
+FOLD_MOD_MS = 30
+_fold_sent = [None, None]      # last sent (type, drive, mix): LFO, ENV
+_fold_mod = 0.0                # current offset from CV IN, -1..+1
+_fold_next = 0
+
+
+def fold_drive_lfo():
+    # LFO DRIVE including FOLD MOD
+    ff = S["lfof"]
+    d = ff[1]
+    if ff[3] and _fold_mod:
+        d = d * (2 ** (2.0 * _fold_mod * ff[4]))
+    return clamp(d, DIST_DRIVE_MIN, DIST_DRIVE_MAX)
+
+
+def _fold_send(i, synth, typ, drive, mix, force):
+    want = (typ, round(drive, 2), round(mix, 3))
+    if not force and _fold_sent[i] == want:
+        return
+    try:
+        amy.send(synth=synth, osc=0, **dist_args(typ, drive, mix))
+        _fold_sent[i] = want
+    except Exception as e:
+        print("CV FOLD", e)
+
+
+def cvfold_apply(force=False):
+    if not (DIST_OK and _cv_synths_ready):
+        return
+    ff = S["lfof"]
+    ef = S["envf"]
+    _fold_send(0, CVMOD_LFO_SYNTH, ff[0], fold_drive_lfo(), ff[2], force)
+    _fold_send(1, CVMOD_ENV_SYNTH, ef[0], ef[1], ef[2], force)
+
+
+def cvfold_service():
+    # follow FOLD MOD - only when FOLD is on, a source is chosen and the
+    # LFO is actually routed to an output
+    global _fold_mod, _fold_next
+    ff = S["lfof"]
+    if not (DIST_OK and ff[0] and ff[3] and CVMOD_LFO_SYNTH in _cv_applied):
+        if _fold_mod:
+            _fold_mod = 0.0
+            cvfold_apply()
+        return
+    if since(_fold_next) < 0:
+        return
+    _fold_next = time.ticks_add(now(), FOLD_MOD_MS)
+    o = clamp(cv_read(ff[3] - 1) / 5.0, -1.0, 1.0)
+    if abs(o - _fold_mod) > 0.01:
+        _fold_mod = o
+        cvfold_apply()
+
+
+def _lfo_wave(i, p):
+    # one period of the LFO wave for the preview (p = 0..1)
+    if i == 0:
+        return math.sin(6.2832 * p)
+    if i == 1:
+        return 1.0 - 4.0 * abs(p - 0.5)
+    if i == 2:
+        return 1.0 - 2.0 * p
+    return 1.0 if p < 0.5 else -1.0
+
+
+def fold_shape(x, typ):
+    # Approximation for the display: triangle fold at +-1, hard clip.
+    # AMY's curves may be softer - for orientation only.
+    if typ in (2, 3):
+        t = math.fmod(x + 1.0, 4.0)
+        if t < 0:
+            t += 4.0
+        x = t - 1.0 if t <= 2.0 else 3.0 - t
+    if typ in (1, 3):
+        x = clamp(x, -1.0, 1.0)
+    return x
 
 
 def trig_synth_setup(out):
@@ -6875,6 +6990,30 @@ P_ENVA = P("ENV ATTACK", rL("env", 0), 1, 5000, 5, "%d", unit="ms", apply=cvmod_
 P_ENVR = P("ENV RELEASE", rL("env", 1), 1, 5000, 5, "%d", unit="ms", apply=cvmod_update_env)
 P_ENVD = P("ENV DEPTH", rL("env", 2), 0.0, 1.0, 0.05, apply=cvmod_update_env)
 
+# Wavefolder CV LFO / CV ENV (v13.20)
+def _lfof_on():
+    return DIST_OK and S["lfof"][0] != 0
+
+
+def _envf_on():
+    return DIST_OK and S["envf"][0] != 0
+
+
+P_LFFT = P("FOLD", rL("lfof", 0), kind=ENUM, opts=DIST_TYPES, apply=cvfold_apply,
+           vis=lambda: DIST_OK)
+P_LFFD = P("LFO DRIVE", rL("lfof", 1), DIST_DRIVE_MIN, DIST_DRIVE_MAX, 1, "%.1f", log=True,
+           apply=cvfold_apply, key="lfoF", short="CVLF", vis=_lfof_on)
+P_LFFM = P("FOLD MIX", rL("lfof", 2), 0.0, 1.0, 0.05, apply=cvfold_apply, vis=_lfof_on)
+P_LFFS = P("FOLD MOD", rL("lfof", 3), kind=ENUM, opts=FOLD_MOD_NAMES, apply=cvfold_apply,
+           vis=_lfof_on)
+P_LFFA = P("MOD DEPTH", rL("lfof", 4), 0.0, 1.0, 0.05,
+           vis=lambda: _lfof_on() and S["lfof"][3] != 0)
+P_ENFT = P("FOLD", rL("envf", 0), kind=ENUM, opts=DIST_TYPES, apply=cvfold_apply,
+           vis=lambda: DIST_OK)
+P_ENFD = P("ENV DRIVE", rL("envf", 1), DIST_DRIVE_MIN, DIST_DRIVE_MAX, 1, "%.1f", log=True,
+           apply=cvfold_apply, key="envF", short="CVEF", vis=_envf_on)
+P_ENFM = P("FOLD MIX", rL("envf", 2), 0.0, 1.0, 0.05, apply=cvfold_apply, vis=_envf_on)
+
 
 def _cal_changed():
     _last_cv[0] = None
@@ -6974,7 +7113,7 @@ ASSIGN_KEYS = ["master", "lvl", "pan", "cut", "res", "att", "dec", "sus", "rel",
                "lfr", "lfd", "porta", "rvL", "rvV", "rvD", "rvX", "chL", "chR",
                "chD", "chM", "ecL", "ecT", "ecF", "ecC", "eqL", "eqM", "eqH",
                "tempo", "swing", "morph", "acut", "ares", "aenv", "adec", "aacc",
-               "alvl", "lfoR", "lfoD", "gx", "gy", "adrv", "dsD"]
+               "alvl", "lfoR", "lfoD", "gx", "gy", "adrv", "dsD", "lfoF", "envF"]
 ASSIGN_NAMES = [REG[k].label for k in ASSIGN_KEYS]
 
 
@@ -8539,8 +8678,10 @@ class ModularPage(ListPage):
     def __init__(self):
         ListPage.__init__(self, "MODULAR", [
             P_EUR, P_QSCALE, P_CV1, P_CV2,
-            link("CV LFO", lambda: ListPage("CV LFO", [P_LFOW, P_LFOR, P_LFOD])),
-            link("CV ENV", lambda: ListPage("CV ENV", [P_ENVA, P_ENVR, P_ENVD])),
+            link("CV LFO", lambda: CvLfoPage(),
+                 info=lambda: DIST_TYPES[S["lfof"][0]] if (DIST_OK and S["lfof"][0]) else ">"),
+            link("CV ENV", lambda: ListPage("CV ENV", [P_ENVA, P_ENVR, P_ENVD,
+                                                         P_ENFT, P_ENFD, P_ENFM])),
             link("SCOPE", lambda: ScopePage()),
             link("CALIBRATION", calib_page)])
         self.y0 = 72
@@ -8579,6 +8720,50 @@ class ModularPage(ListPage):
 
     def draw_foot(self, it):
         pass
+
+
+class CvLfoPage(ListPage):
+    # CV LFO with a preview of the (folded) wave at the top (v13.20)
+    def __init__(self):
+        ListPage.__init__(self, "CV LFO", [P_LFOW, P_LFOR, P_LFOD, P_LFFT, P_LFFD,
+                                           P_LFFM, P_LFFS, P_LFFA])
+        self.y0 = 66
+        self.n = 4
+        self._shown = None
+
+    def tick(self):
+        # the preview only changes by itself with FOLD MOD
+        ff = S["lfof"]
+        if not (ff[0] and ff[3]):
+            return False
+        d = round(fold_drive_lfo(), 1)
+        if d != self._shown:
+            self._shown = d
+            return True
+        return False
+
+    def draw_head(self):
+        lf = S["lfo"]
+        ff = S["lfof"]
+        typ = ff[0] if DIST_OK else 0
+        drive = fold_drive_lfo()
+        draw_title("CV LFO", ("D%.1f" % drive) if typ else "")
+        cy = 42
+        a = 14
+        HL(4, cy - a, 120, GH)
+        HL(4, cy + a, 120, GH)
+        px = py = None
+        for k in range(61):
+            w = _lfo_wave(lf[0], k / 60.0) * lf[2]
+            y = w
+            if typ:
+                y = w * (1.0 - ff[2]) + fold_shape(w * drive, typ) * ff[2]
+            xx = 4 + 2 * k
+            yy = cy - int(clamp(y, -1.0, 1.0) * a)
+            if px is not None:
+                LN(px, py, xx, yy, W)
+            px, py = xx, yy
+        HL(0, 62, 128, GH)
 
 
 def _calib_leave():
@@ -9951,6 +10136,7 @@ def service_misc():
         _morph_next = time.ticks_add(now(), 60)
         morph_apply()
     cvmod_service()
+    cvfold_service()
     smp_service()
     if S["m5"] and enc is not None:
         try:

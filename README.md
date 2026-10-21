@@ -2,7 +2,7 @@
 
 A MicroPython sketch that turns the [AMYboard](https://amyboard.com) into a full Eurorack groovebox, fully playable on the module via a 128×128 OLED, rotary encoders and an optional joystick.
 
-**Version 13.19** · runs on current AMYboard firmware (AMY 1.2.16x or newer) · on-screen menus in **English or German**
+**Version 13.20** · runs on current AMYboard firmware (AMY 1.2.16x or newer) · on-screen menus in **English or German**
 
 ## Features
 
@@ -11,7 +11,7 @@ A MicroPython sketch that turns the [AMYboard](https://amyboard.com) into a full
 - **Effects:** reverb, chorus, echo, EQ and distortion (clip/fold/drive/mix) per bus, bitcrusher, distortion on the 303
 - **Scenes:** 8 slots with A/B morph
 - **Sampler:** 8 slots, WAVs from SD, recording (line or resampling) saved to SD, non-destructive trim and loop points, envelope and filter per slot (incl. notch/phaser), tempo sync (time-stretch), slicing to the drum track or MIDI
-- **Eurorack:** CV in/out (1 V/oct, gate, LFO, envelope, quantizer, drum triggers), calibration, scope
+- **Eurorack:** CV in/out (1 V/oct, gate, LFO with wavefolder, envelope, quantizer, drum triggers), calibration, scope
 - **Controls:** navigation encoder, M5Stack 8-encoder and/or up to two Adafruit Quad encoders (freely assignable knobs and buttons, live patch switching), M5Stack joystick
 
 ## Hardware

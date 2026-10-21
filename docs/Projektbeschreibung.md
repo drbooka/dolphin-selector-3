@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Projektbeschreibung
 
-Stand 20.10.2026 · Sketch-Version 13.19 (13.18 auf der Hardware bestätigt)
+Stand 21.10.2026 · Sketch-Version 13.20 (13.18 auf der Hardware bestätigt)
 
 ## Ziel
 
@@ -30,7 +30,7 @@ Geplant ist eine eigene 3D-gedruckte 22HP-Frontplatte, auf der 8-Encoder und Joy
 
 ## Software
 
-Eine Datei `sketch.py`, geladen über AMYboard Online. Sie wird **ohne Kommentare** ausgeliefert (~259 KB). Die kommentierte Fassung `sketch_src.py` (~325 KB) ist zu groß zum Übersetzen auf dem Board (v13.11 startete deshalb nicht).
+Eine Datei `sketch.py`, geladen über AMYboard Online. Sie wird **ohne Kommentare** ausgeliefert (~264 KB). Die kommentierte Fassung `sketch_src.py` (~325 KB) ist zu groß zum Übersetzen auf dem Board (v13.11 startete deshalb nicht).
 
 - **Zustand:** Alles Speicherbare liegt in einem Dict `S`. Es wird als JSON gespeichert, mit Werkswerten zusammengeführt (`_merge`) und über `sanitize()` auf gültige Grenzen gebracht. Neue Schlüssel bekommen so bei alten Ständen automatisch ihre Werkswerte.
 - **Parameter-System:** Jeder Parameter ist ein `P`-Objekt mit Anzeige, Bereich, Apply-Funktion und Sichtbarkeit. Dieselbe Definition dient der Menüzeile, dem Bearbeitungsring, der Encoder-Zuordnung, den Makros und dem Speichern. Funktionen, die die Firmware nicht kennt (Distortion, `fit`, `store_sample`), werden beim Start geprüft und sonst ausgeblendet.
@@ -50,8 +50,8 @@ Belegte AMY-Synth-Nummern: 1–16 MIDI-Kanäle, 20/21 CV-LFO/-Hüllkurve, 22–2
 
 | Datei | Inhalt |
 |---|---|
-| `claude/sketch_src.py` | Kommentierte Fassung (aktuell v13.19), zum Lesen |
-| `claude/sketch_v13.19.py` | Board-Fassung v13.19 (ohne Kommentare) – diese aufs Board |
+| `claude/sketch_src.py` | Kommentierte Fassung (aktuell v13.20), zum Lesen |
+| `claude/sketch_v13.20.py` | Board-Fassung v13.20 (ohne Kommentare) – diese aufs Board |
 | `claude/sketch_v13.15.py` … `v13.18.py` | Sicherungen zum Zurückgehen (v13.18 = letzter bestätigter Stand; ältere Kopien am 20.10.2026 gelöscht) |
 | `claude/AENDERUNGEN_v13.15.md` … `v13.19.md`, `v13.0`, `v12.11-12.13` | Änderungslisten |
 | `claude/Bedienungsanleitung_v13.md` | Anleitung mit Menübaum (Stand v13.19) |
@@ -78,6 +78,7 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 | 13.17 | 20.10.2026 | Sampler TAKT-SYNC (`fit`), GRAIN-SUCHE; DRIVE max. 16 |
 | 13.18 | 20.10.2026 | Sampler SLICES (4/8/16), SLICE je Drum-Instrument, AUF DRUMS VERTEILEN |
 | 13.19 | 20.10.2026 | DX7-Bänke von SD (`fm.load_syx`), Taster der Zusatz-Encoder (kurz/lang), Filter NOTCH/PHASER für Slots, Slices über MIDI (PAD-KANAL Noten 44–59) |
+| 13.20 | 21.10.2026 | Wavefolder für CV LFO und CV ENV (FOLD/DRIVE/MIX in AMY), FOLD MOD über CV IN1/IN2, Vorschau der gefalteten Welle |
 
 ## Offene Punkte (auf der Hardware zu prüfen)
 

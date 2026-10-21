@@ -131,8 +131,8 @@ HOME (start page)
     │   ├─ MODE (OFF · CV1>FILTER · GATE+PITCH · MIDI>CV · 303>CV · CV1>OUT1 · CV2>OUT2 · QUANTIZE)
     │   ├─ SCALE ...................... QUANTIZE
     │   ├─ CV MOD OUT1 · CV MOD OUT2 (OFF/LFO/ENV)
-    │   ├─ CV LFO ─► WAVE · RATE · DEPTH
-    │   ├─ CV ENV ─► ATTACK · RELEASE · DEPTH
+    │   ├─ CV LFO ─► WAVE · RATE · DEPTH · FOLD · LFO DRIVE · FOLD MIX · FOLD MOD · MOD DEPTH
+    │   ├─ CV ENV ─► ATTACK · RELEASE · DEPTH · FOLD · ENV DRIVE · FOLD MIX
     │   ├─ SCOPE
     │   └─ CALIBRATION ─► OUT1 OFFSET · OUT1 SCALE · OUT2 OFFSET · OUT2 SCALE · TEST VOLTAGE
     │
@@ -315,6 +315,7 @@ A map with four corners creates the drum patterns. X and Y blend smoothly betwee
 
 - Pitch is always 1 V/octave, 0 V = C1 (MIDI 24).
 - **CV MOD:** LFO or envelope (ENV, triggered by notes of the current channel) on OUT 1/2. If a Eurorack mode uses the output, the mode has priority.
+- **WAVEFOLDER (v13.20):** CV LFO › FOLD (CLIP/FOLD/CLIP+FOLD) folds the LFO inside AMY. DEPTH acts before the folder (like the input level), LFO DRIVE adds more gain, FOLD MIX blends between smooth and folded. FOLD MOD = CV IN1/IN2 shifts the drive by voltage (MOD DEPTH 1 = ±2 octaves, 5 V = full swing). A preview at the top of the page shows the wave (approximate). LFO DRIVE and ENV DRIVE can be assigned to a macro or encoder. CV ENV also has FOLD, ENV DRIVE and FOLD MIX.
 - **CALIBRATION:** set TEST VOLTAGE to 0–4 V, measure it with an oscillator or tuner, then adjust OFFSET/SCALE per output.
 
 ### SCENES

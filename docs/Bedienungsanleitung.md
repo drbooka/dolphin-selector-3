@@ -129,8 +129,8 @@ SPIELEN (Startseite)
     │   ├─ MODUS (AUS · CV1>FILTER · GATE+PITCH · MIDI>CV · 303>CV · CV1>OUT1 · CV2>OUT2 · QUANTIZE)
     │   ├─ SKALA ...................... QUANTIZE
     │   ├─ CV MOD OUT1 · CV MOD OUT2 (AUS/LFO/ENV)
-    │   ├─ CV LFO ─► WELLE · RATE · TIEFE
-    │   ├─ CV ENV ─► ATTACK · RELEASE · TIEFE
+    │   ├─ CV LFO ─► WELLE · RATE · TIEFE · FOLD · LFO DRIVE · FOLD MIX · FOLD MOD · MOD TIEFE
+    │   ├─ CV ENV ─► ATTACK · RELEASE · TIEFE · FOLD · ENV DRIVE · FOLD MIX
     │   ├─ SCOPE
     │   └─ KALIBRIERUNG ─► OUT1 OFFSET · OUT1 SKALA · OUT2 OFFSET · OUT2 SKALA · TESTSPANNUNG
     │
@@ -311,6 +311,7 @@ Eine Karte mit vier Ecken erzeugt die Drum-Patterns. X und Y mischen stufenlos z
 
 - Pitch überall 1 V/Oktave, 0 V = C1 (MIDI 24).
 - **CV MOD:** LFO oder Hüllkurve (ENV, ausgelöst von Noten des aktuellen Kanals) auf OUT 1/2. Belegt ein Eurorack-Modus den Ausgang, hat der Modus Vorrang.
+- **WAVEFOLDER (v13.20):** CV LFO › FOLD (CLIP/FOLD/CLIP+FOLD) faltet den LFO in AMY. TIEFE wirkt vor dem Folder (wie der Eingangspegel), LFO DRIVE verstärkt zusätzlich, FOLD MIX blendet zwischen glatt und gefaltet. FOLD MOD = CV IN1/IN2 verschiebt den Drive per Spannung (MOD TIEFE 1 = ±2 Oktaven, 5 V = voller Ausschlag). Oben auf der Seite zeigt eine Vorschau die Welle (Näherung). LFO DRIVE und ENV DRIVE lassen sich als Makro oder Encoder belegen. CV ENV hat FOLD, ENV DRIVE und FOLD MIX ebenfalls.
 - **KALIBRIERUNG:** TESTSPANNUNG auf 0–4 V stellen, am Oszillator oder Stimmgerät nachmessen, dann OFFSET/SKALA pro Ausgang anpassen.
 
 ### SZENEN
