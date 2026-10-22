@@ -24,7 +24,7 @@ try:
     import random as _random
 except Exception:
     _random = None
-VERSION = "13.20"
+VERSION = "13.21"
 def clamp(v, lo, hi):
     if v < lo:
         return lo
@@ -650,6 +650,11 @@ def new_sampler():
             "asv": 1,
             "ss": 0}
 ENCB_DEFAULT = ("KONTEXT",) * 16
+def new_vco():
+    return {"on": 0, "src": 1, "wav": 2, "root": 24, "fine": 0, "trk": 1.0,
+            "pw": 0.5, "sub": 0.0, "so": 1, "o2": 0.0, "iv": 0, "det": 7,
+            "pm": 0, "sc": 0, "msrc": 0, "mt": 0, "md": 0.3,
+            "ft": 0, "fd": 2.0, "fm": 1.0, "lvl": 0.8, "pan": 0.5, "bus": 0}
 USER_BASE = 1024
 ENCF_DEFAULT = ("SCREEN", "SCREEN", "SCREEN", "SCREEN",
                 "master", "lvl", "rvL", "ecL",
@@ -693,6 +698,7 @@ def default_state():
         "fav": [], "rec": [], "mA": 0, "mB": 1, "mx": 0.0, "cct": 0,
         "uit": 1, "dfast": 1,
         "sqm": 1, "vlf": 250,
+        "vco": new_vco(),
     }
     for k, v in TONE_DEF:
         s[k] = [v] * 17
@@ -892,7 +898,33 @@ def sanitize():
         ff[2] = clamp(ff[2], 0.0, 1.0)
     S["lfof"][3] = clamp_int(S["lfof"][3], 0, 2)
     S["lfof"][4] = clamp(S["lfof"][4], 0.0, 1.0)
+    _sanitize_vco()
     _sanitize_sampler()
+def _sanitize_vco():
+    v = S["vco"]
+    v["on"] = 1 if v["on"] else 0
+    v["src"] = clamp_int(v["src"], 0, 2)
+    v["wav"] %= len(VCO_WAVE_NAMES)
+    v["root"] = clamp_int(v["root"], 12, 96)
+    v["fine"] = clamp_int(v["fine"], -100, 100)
+    v["trk"] = clamp(v["trk"], 0.95, 1.05)
+    v["pw"] = clamp(v["pw"], 0.05, 0.95)
+    v["sub"] = clamp(v["sub"], 0.0, 1.0)
+    v["so"] = clamp_int(v["so"], 1, 2)
+    v["o2"] = clamp(v["o2"], 0.0, 1.0)
+    v["iv"] = clamp_int(v["iv"], -24, 24)
+    v["det"] = clamp_int(v["det"], 0, 50)
+    v["pm"] = 1 if v["pm"] else 0
+    v["sc"] %= len(SCALES)
+    v["msrc"] = clamp_int(v["msrc"], 0, 2)
+    v["mt"] %= len(VCO_MOD_NAMES)
+    v["md"] = clamp(v["md"], 0.0, 1.0)
+    v["ft"] = clamp_int(v["ft"], 0, len(DIST_TYPES) - 1)
+    v["fd"] = clamp(v["fd"], DIST_DRIVE_MIN, DIST_DRIVE_MAX)
+    v["fm"] = clamp(v["fm"], 0.0, 1.0)
+    v["lvl"] = clamp(v["lvl"], 0.0, 1.5)
+    v["pan"] = clamp(v["pan"], 0.0, 1.0)
+    v["bus"] = clamp_int(v["bus"], 0, 3)
 def _sanitize_sampler():
     b = S["sb"]
     if not isinstance(b.get("sl"), list) or len(b["sl"]) != SMP_SLOTS:
@@ -1676,6 +1708,8 @@ def active_buses():
     for sl in S["sb"]["sl"]:
         if sl["f"]:
             buses.add(sl["bus"])
+    if S["vco"]["on"]:
+        buses.add(S["vco"]["bus"])
     return buses
 def headroom_scale():
     n = 0
@@ -1729,6 +1763,11 @@ def apply_crush():
 def apply_audio_mode():
     for ch in range(1, 17):
         apply_pan(ch)
+    if _vco_running:
+        try:
+            _vco_send_out()
+        except Exception as e:
+            print("VCO PAN", e)
 CC_TARGETS = [
     ("CUT", 1, 100.0, 8000.0, 0.0, "i%iv0F%v"),
     ("RES", 0, 0.5, 8.0, 0.0, "i%iv0R%v"),
@@ -1927,9 +1966,9 @@ def midicv_note(note, on):
 def midicv_active_for(ch):
     return _eur_mode == EUR_MIDI_CV and not NOTE_OUTPUT_CV_NATIVE and ch == _eur_ch
 _last_q = None
-def quantize(v):
+def quantize(v, si=None):
     semis = int(round(clamp(v, CV_IN_MIN, CV_IN_MAX) * 12.0))
-    sc = SCALES[S["qscale"] % len(SCALES)]
+    sc = SCALES[(S["qscale"] if si is None else si) % len(SCALES)]
     base = semis // 12
     best = semis
     bd = None
@@ -2142,6 +2181,186 @@ def cvmod_env_note(on):
                 amy.send(synth=CVMOD_ENV_SYNTH, vel=0)
     except Exception:
         pass
+VCO_WAVE_NAMES = ["SIN", "TRI", "SAW", "PULS"]
+VCO_MOD_NAMES = ["FM", "PWM", "FOLD"]
+VCO_IN_NAMES = ["AUS", "IN1", "IN2"]
+VCO_PM_NAMES = ["FREI", "QUANT"]
+VCO_OSCS = 3
+VCO_BP0 = "5,1,60,0"
+VCO_FM_OCT = 1.0
+VCO_PWM_PER_V = 0.08
+VCO_FOLD_MS = 30
+VCO_Q_HYST = 0.2
+VCO_SYNTH = None
+_vco_running = False
+_vco_q = None
+_vco_fold_mod = 0.0
+_vco_fold_next = 0
+_vco_fold_sent = None
+def vco_init():
+    global VCO_SYNTH
+    VCO_SYNTH = None
+    try:
+        amy.send(synth=40, num_voices=1, oscs_per_voice=VCO_OSCS)
+        if amy.get_synth_commands(40).strip():
+            VCO_SYNTH = 40
+    except Exception as e:
+        print("VCO PROBE", e)
+    if VCO_SYNTH is None and 31 not in PAD_SYNTHS:
+        VCO_SYNTH = 31
+    print("VCO-SYNTH", VCO_SYNTH)
+    if S["vco"]["on"]:
+        vco_start()
+def vco_hz(semis=0.0):
+    v = S["vco"]
+    return 440.0 * 2 ** ((v["root"] + semis - 69) / 12.0 + v["fine"] / 1200.0)
+def _vco_ext(v):
+    e = [0.0, 0.0]
+    if v["src"] and not v["pm"]:
+        e[v["src"] - 1] += v["trk"]
+    if v["msrc"] and v["mt"] == 0:
+        e[v["msrc"] - 1] += v["md"] * VCO_FM_OCT
+    return e
+def _vco_send_freq():
+    v = S["vco"]
+    semis = _vco_q if (v["pm"] and v["src"] and _vco_q is not None) else 0
+    f0 = vco_hz(semis)
+    e = _vco_ext(v)
+    f2 = f0 * 2 ** (v["iv"] / 12.0 + v["det"] / 1200.0)
+    for o, f in ((0, f0), (1, f0 / (2 ** v["so"])), (2, f2)):
+        amy.send(synth=VCO_SYNTH, osc=o,
+                 freq={"const": round(f, 4), "note": 0, "bend": 0,
+                       "ext0": round(e[0], 4), "ext1": round(e[1], 4)})
+def _vco_send_duty():
+    v = S["vco"]
+    d = [0.0, 0.0]
+    if v["msrc"] and v["mt"] == 1:
+        d[v["msrc"] - 1] = round(v["md"] * VCO_PWM_PER_V, 4)
+    for o in (0, 2):
+        amy.send(synth=VCO_SYNTH, osc=o,
+                 duty={"const": round(v["pw"], 3), "ext0": d[0], "ext1": d[1]})
+def _vco_send_wave():
+    w = _wave_const(S["vco"]["wav"])
+    for o in (0, 2):
+        amy.send(synth=VCO_SYNTH, osc=o, wave=w)
+def _vco_send_mix():
+    v = S["vco"]
+    norm = 1.0 / (1.0 + 0.5 * (v["sub"] + v["o2"]))
+    for o, g in ((0, 1.0), (1, v["sub"]), (2, v["o2"])):
+        amy.send(synth=VCO_SYNTH, osc=o, amp={"const": round(g * norm, 3)})
+def _vco_send_out():
+    v = S["vco"]
+    p = 0.5 if S["audio"] == 1 else v["pan"]
+    for o in range(VCO_OSCS):
+        amy.send(synth=VCO_SYNTH, osc=o, pan=p)
+    amy.send(synth=VCO_SYNTH, synth_level=v["lvl"])
+def vco_fold_drive():
+    v = S["vco"]
+    d = v["fd"]
+    if _vco_fold_mod:
+        d = d * (2 ** (2.0 * _vco_fold_mod * v["md"]))
+    return clamp(d, DIST_DRIVE_MIN, DIST_DRIVE_MAX)
+def _vco_send_fold(force=False):
+    global _vco_fold_sent
+    if not DIST_OK:
+        return
+    v = S["vco"]
+    want = (v["ft"], round(vco_fold_drive(), 2), round(v["fm"], 3))
+    if not force and want == _vco_fold_sent:
+        return
+    amy.send(synth=VCO_SYNTH, osc=0, **dist_args(want[0], want[1], want[2]))
+    _vco_fold_sent = want
+def _vco_quant(force=False):
+    global _vco_q
+    v = S["vco"]
+    if not (v["pm"] and v["src"]):
+        return False
+    r = cv_read(v["src"] - 1) * v["trk"] * 12.0
+    q = int(round(quantize(r / 12.0, v["sc"]) * 12.0))
+    if (not force and _vco_q is not None and q != _vco_q
+            and abs(r - _vco_q) < abs(r - q) + VCO_Q_HYST):
+        q = _vco_q
+    if q == _vco_q and not force:
+        return False
+    _vco_q = q
+    return True
+def vco_start():
+    global _vco_running, _vco_q, _vco_fold_sent, _vco_fold_mod
+    if VCO_SYNTH is None:
+        S["vco"]["on"] = 0
+        toast("VCO", "KEIN SYNTH FREI", 1800)
+        return False
+    s = VCO_SYNTH
+    v = S["vco"]
+    try:
+        amy.send(synth=s, num_voices=1, oscs_per_voice=VCO_OSCS, bus=v["bus"])
+        amy.send(synth=s, osc=0, chained_osc=1)
+        amy.send(synth=s, osc=1, chained_osc=2, wave=_wave_const(3), duty=0.5)
+        for o in range(VCO_OSCS):
+            amy.send(synth=s, osc=o, bp0=VCO_BP0)
+        _vco_q = None
+        _vco_fold_sent = None
+        _vco_fold_mod = 0.0
+        _vco_quant(True)
+        _vco_send_wave()
+        _vco_send_freq()
+        _vco_send_duty()
+        _vco_send_mix()
+        _vco_send_out()
+        _vco_send_fold(True)
+        amy.send(synth=s, note=69, vel=1)
+        _vco_running = True
+    except Exception as e:
+        print("VCO START", e)
+        toast("VCO", "FEHLER", 1500)
+        return False
+    refresh_buses()
+    return True
+def vco_stop():
+    global _vco_running
+    if VCO_SYNTH is not None:
+        try:
+            amy.send(synth=VCO_SYNTH, vel=0)
+        except Exception as e:
+            print("VCO STOP", e)
+    _vco_running = False
+    refresh_buses()
+def vco_apply_all():
+    if S["vco"]["on"]:
+        vco_start()
+    elif _vco_running:
+        vco_stop()
+def vco_service():
+    global _vco_fold_mod, _vco_fold_next
+    if not _vco_running:
+        return
+    v = S["vco"]
+    try:
+        if _vco_quant():
+            _vco_send_freq()
+        if v["mt"] == 2 and v["msrc"] and v["ft"] and DIST_OK:
+            if since(_vco_fold_next) >= 0:
+                _vco_fold_next = time.ticks_add(now(), VCO_FOLD_MS)
+                o = clamp(cv_read(v["msrc"] - 1) / 5.0, -1.0, 1.0)
+                if abs(o - _vco_fold_mod) > 0.01:
+                    _vco_fold_mod = o
+                    _vco_send_fold()
+        elif _vco_fold_mod:
+            _vco_fold_mod = 0.0
+            _vco_send_fold()
+    except Exception as e:
+        print("VCO SERVICE", e)
+def vco_pitch_now():
+    v = S["vco"]
+    n = v["root"] + v["fine"] / 100.0
+    if v["src"]:
+        if v["pm"]:
+            n += _vco_q or 0
+        else:
+            n += cv_in_v[v["src"] - 1] * 12.0 * v["trk"]
+    if v["msrc"] and v["mt"] == 0:
+        n += cv_in_v[v["msrc"] - 1] * 12.0 * v["md"] * VCO_FM_OCT
+    return n
 SMP_SLOTS = 8
 SMP_PRESET_BASE = 1040
 SMP_MAX_MS = 10000
@@ -4243,7 +4462,7 @@ def reset_all_midi():
 SCENE_KEYS = ("pat", "vo", "bus", "lvl", "pan", "mute", "chord", "porta",
               "cut", "res", "att", "dec", "sus", "rel", "lfr", "lfd", "alg",
               "fb", "tch", "fx", "master", "crush", "crate", "tempo", "swing",
-              "trk", "acid", "drm", "syx")
+              "trk", "acid", "drm", "syx", "vco")
 scenes = [None] * 8
 def scenes_load():
     global scenes
@@ -4286,6 +4505,7 @@ def scene_recall(i):
     apply_tempo()
     acid_setup()
     apply_eurorack_mode()
+    vco_apply_all()
     request_save()
     toast("SZENE %d" % (i + 1), "GELADEN")
 def scene_delete(i):
@@ -5135,11 +5355,84 @@ P_SQM = P("SEQ-AUSGABE", rS("sqm"), kind=ENUM, opts=["DIREKT", "VORAUS"], apply=
 P_VMS = P("VORLAUF", rS("vlf"), 50, 400, 25, "%d", unit="ms", vis=lambda: S["sqm"])
 P_DFAST = P("UPDATE", rS("dfast"), kind=ENUM, opts=["VOLL", "BAENDER"],
             vis=lambda: _fast_ok)
+def rV(k):
+    return lambda: (S["vco"], k)
+def _vco_do(fn):
+    def f():
+        if _vco_running:
+            fn()
+    return f
+def _vco_pitch_changed():
+    global _vco_q
+    _vco_q = None
+    if _vco_running:
+        _vco_quant(True)
+        _vco_send_freq()
+def _vco_mod_changed():
+    global _vco_fold_mod
+    v = S["vco"]
+    if not (v["mt"] == 2 and v["msrc"]):
+        _vco_fold_mod = 0.0
+    if _vco_running:
+        _vco_send_freq()
+        _vco_send_duty()
+        _vco_send_fold()
+def _vco_bus_changed():
+    if _vco_running:
+        amy.send(synth=VCO_SYNTH, bus=S["vco"]["bus"])
+    refresh_buses()
+def _vco_o2():
+    return S["vco"]["o2"] > 0
+def _vco_mod():
+    return S["vco"]["msrc"] != 0
+def _vco_fold_on():
+    return DIST_OK and S["vco"]["ft"] != 0
+P_VON = P("VCO", rV("on"), kind=BOOL, apply=vco_apply_all)
+P_VSRC = P("1V/OKT IN", rV("src"), kind=ENUM, opts=VCO_IN_NAMES, apply=_vco_pitch_changed)
+P_VPM = P("TONHOEHE", rV("pm"), kind=ENUM, opts=VCO_PM_NAMES, apply=_vco_pitch_changed,
+          vis=lambda: S["vco"]["src"] != 0)
+P_VSC = P("SKALA", rV("sc"), kind=ENUM, opts=SCALE_NAMES, apply=_vco_pitch_changed,
+          vis=lambda: S["vco"]["src"] != 0 and S["vco"]["pm"] != 0)
+P_VROOT = P("GRUNDTON 0V", rV("root"), 12, 96, 1, fmtf=note_name,
+            apply=_vco_do(_vco_send_freq))
+P_VFIN = P("VCO FEIN", rV("fine"), -100, 100, 1, "%+d", unit="ct", bip=True,
+           apply=_vco_do(_vco_send_freq), key="vfin", short="VFIN")
+P_VTRK = P("V/OKT", rV("trk"), 0.95, 1.05, 0.001, "%.3f", apply=_vco_pitch_changed,
+           vis=lambda: S["vco"]["src"] != 0)
+P_VWAV = P("WELLE", rV("wav"), kind=ENUM, opts=VCO_WAVE_NAMES, apply=_vco_do(_vco_send_wave))
+P_VPW = P("VCO PW", rV("pw"), 0.05, 0.95, 0.01, apply=_vco_do(_vco_send_duty),
+          key="vpw", short="VPW", vis=lambda: S["vco"]["wav"] == 3)
+P_VSUB = P("VCO SUB", rV("sub"), 0.0, 1.0, 0.02, apply=_vco_do(_vco_send_mix),
+           key="vsub", short="VSUB")
+P_VSO = P("SUB OKTAVE", rV("so"), kind=ENUM, opts=["-1", "-2"], vals=[1, 2],
+          apply=_vco_do(_vco_send_freq), vis=lambda: S["vco"]["sub"] > 0)
+P_VO2 = P("VCO OSZ 2", rV("o2"), 0.0, 1.0, 0.02, apply=_vco_do(_vco_send_mix),
+          key="vo2", short="VO2")
+P_VIV = P("INTERVALL", rV("iv"), -24, 24, 1, "%+d", unit="HT",
+          apply=_vco_do(_vco_send_freq), vis=_vco_o2)
+P_VDET = P("VCO DETUNE", rV("det"), 0, 50, 1, "%d", unit="ct",
+           apply=_vco_do(_vco_send_freq), key="vdet", short="VDET", vis=_vco_o2)
+P_VMSRC = P("MOD IN", rV("msrc"), kind=ENUM, opts=VCO_IN_NAMES, apply=_vco_mod_changed)
+P_VMT = P("MOD ZIEL", rV("mt"), kind=ENUM, opts=VCO_MOD_NAMES, apply=_vco_mod_changed,
+          vis=_vco_mod)
+P_VMD = P("VCO MOD", rV("md"), 0.0, 1.0, 0.02, apply=_vco_mod_changed,
+          key="vmd", short="VMOD", vis=_vco_mod)
+P_VFT = P("FOLD", rV("ft"), kind=ENUM, opts=DIST_TYPES,
+          apply=_vco_do(lambda: _vco_send_fold(True)), vis=lambda: DIST_OK)
+P_VFD = P("VCO DRIVE", rV("fd"), DIST_DRIVE_MIN, DIST_DRIVE_MAX, 1, "%.1f", log=True,
+          apply=_vco_do(_vco_send_fold), key="vdrv", short="VDRV", vis=_vco_fold_on)
+P_VFM = P("FOLD MIX", rV("fm"), 0.0, 1.0, 0.05, apply=_vco_do(_vco_send_fold),
+          vis=_vco_fold_on)
+P_VLVL = P("VCO LEVEL", rV("lvl"), 0.0, 1.5, 0.02, apply=_vco_do(_vco_send_out),
+           key="vlvl", short="VLVL")
+P_VPAN = P("PAN", rV("pan"), 0.0, 1.0, 0.02, bip=True, apply=_vco_do(_vco_send_out))
+P_VBUS = P("BUS", rV("bus"), 0, 3, 1, "%d", apply=_vco_bus_changed)
 ASSIGN_KEYS = ["master", "lvl", "pan", "cut", "res", "att", "dec", "sus", "rel",
                "lfr", "lfd", "porta", "rvL", "rvV", "rvD", "rvX", "chL", "chR",
                "chD", "chM", "ecL", "ecT", "ecF", "ecC", "eqL", "eqM", "eqH",
                "tempo", "swing", "morph", "acut", "ares", "aenv", "adec", "aacc",
-               "alvl", "lfoR", "lfoD", "gx", "gy", "adrv", "dsD", "lfoF", "envF"]
+               "alvl", "lfoR", "lfoD", "gx", "gy", "adrv", "dsD", "lfoF", "envF",
+               "vfin", "vpw", "vsub", "vo2", "vdet", "vdrv", "vmd", "vlvl"]
 ASSIGN_NAMES = [REG[k].label for k in ASSIGN_KEYS]
 PATCH_ENC_CHANNELS = (1, 2, 3, 4)
 MELODIC_PATCHES = [p for p in ALL_PATCHES if not is_drum(p)]
@@ -6370,6 +6663,71 @@ def drum_menu_page():
         action("ALLE LAENGEN 16", _drm_len16),
         action("KOPIE > NAECHST.", lambda: _copy_next(DRUM)),
         action("LEEREN", lambda: _clear_pat(DRUM))])
+def _vco_info():
+    if VCO_SYNTH is None:
+        return "FEHLT"
+    return "AN" if _vco_running else "AUS"
+def vco_items():
+    return [P_VON, P_VSRC, P_VPM, P_VSC, P_VROOT, P_VFIN, P_VTRK,
+            P_VWAV, P_VPW, P_VSUB, P_VSO, P_VO2, P_VIV, P_VDET,
+            P_VMSRC, P_VMT, P_VMD, P_VFT, P_VFD, P_VFM,
+            P_VLVL, P_VPAN, P_VBUS]
+def _vco_wave(i, p, pw):
+    if i == 3:
+        return 1.0 if p < pw else -1.0
+    return _lfo_wave(i, p)
+class VcoPage(ListPage):
+    def __init__(self):
+        ListPage.__init__(self, "VCO", vco_items)
+        self.y0 = 66
+        self.n = 4
+        self._next = 0
+        self._shown = None
+    def tick(self):
+        if since(self._next) < 0:
+            return False
+        self._next = time.ticks_add(now(), 120)
+        v = S["vco"]
+        for i in (v["src"], v["msrc"]):
+            if i:
+                cv_read(i - 1)
+        k = (int(vco_pitch_now() * 20), round(vco_fold_drive(), 1), _vco_running)
+        if k != self._shown:
+            self._shown = k
+            return True
+        return False
+    def draw_head(self):
+        v = S["vco"]
+        n = vco_pitch_now()
+        hz = 440.0 * 2 ** ((n - 69) / 12.0)
+        near = clamp_int(int(round(n)), 0, 127)
+        ct = int(round((n - near) * 100))
+        draw_title("VCO " + ("AN" if _vco_running else "AUS"),
+                   ("%dHz" % hz) if hz < 10000 else ("%.1fk" % (hz / 1000.0)))
+        on = _vco_running
+        BIG(note_name(near), 3, 27, 2, W if on else DIM)
+        TR("%+dct" % ct, 125, 27, HI if abs(ct) <= 5 else MID)
+        bipbar(72, 38, 52, 4, (ct + 50) / 100.0, HI if abs(ct) <= 5 else LO)
+        cy = 53
+        a = 6
+        typ = v["ft"] if DIST_OK else 0
+        drive = vco_fold_drive()
+        norm = 1.0 / (1.0 + 0.5 * v["sub"])
+        px = py = None
+        for k in range(61):
+            p = k / 30.0
+            y = _vco_wave(v["wav"], p % 1.0, v["pw"])
+            if v["sub"]:
+                y += v["sub"] * (1.0 if (p / (2 ** v["so"])) % 1.0 < 0.5 else -1.0)
+            y *= norm
+            if typ:
+                y = y * (1.0 - v["fm"]) + fold_shape(y * drive, typ) * v["fm"]
+            xx = 4 + 2 * k
+            yy = cy - int(clamp(y, -1.0, 1.0) * a)
+            if px is not None:
+                LN(px, py, xx, yy, W if on else LO)
+            px, py = xx, yy
+        HL(0, 62, 128, GH)
 class ModularPage(ListPage):
     def __init__(self):
         ListPage.__init__(self, "MODULAR", [
@@ -6378,6 +6736,7 @@ class ModularPage(ListPage):
                  info=lambda: DIST_TYPES[S["lfof"][0]] if (DIST_OK and S["lfof"][0]) else ">"),
             link("CV ENV", lambda: ListPage("CV ENV", [P_ENVA, P_ENVR, P_ENVD,
                                                          P_ENFT, P_ENFD, P_ENFM])),
+            link("VCO", lambda: VcoPage(), info=_vco_info),
             link("SCOPE", lambda: ScopePage()),
             link("KALIBRIERUNG", calib_page)])
         self.y0 = 72
@@ -6992,6 +7351,7 @@ def info_page():
         infoline("JOYSTICK", lambda: "JA" if joystick_available else "NEIN"),
         infoline("DISTORTION", lambda: "JA" if DIST_OK else "NEIN"),
         infoline("TAKT-SYNC", lambda: "JA" if FIT_OK else "NEIN"),
+        infoline("VCO-SYNTH", lambda: "%d" % VCO_SYNTH if VCO_SYNTH else "FEHLT"),
         infoline("DX7 SD (FM)", lambda: "JA" if fm_mod() else "NEIN"),
         infoline("I2C", _i2c_count),
         infoline("RAM FREI", _free_mem),
@@ -7548,6 +7908,7 @@ def service_misc():
         morph_apply()
     cvmod_service()
     cvfold_service()
+    vco_service()
     smp_service()
     if S["m5"] and enc is not None:
         try:
@@ -7753,6 +8114,10 @@ try:
     cvmod_service(True)
 except Exception as e:
     print("CVMOD INIT", e)
+try:
+    vco_init()
+except Exception as e:
+    print("VCO INIT", e)
 if S["run"]:
     S["run"] = 0
     try:
@@ -7815,6 +8180,8 @@ print("Seq:", "FEIN" if _seq_slot is not None else "LOOP",
       "Display:", "BAENDER" if _fast_ok else "VOLL",
       "RAM:", _ram_boot, "Boot ms:", _boot_dur_ms)
 print("================================")
+_auto_generated_knobs = """
+"""
 # Do not edit. Set automatically by the knobs on AMYboard Online.
 _auto_generated_knobs = """
 

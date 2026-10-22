@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Bedienungsanleitung
 
-Version 13.19 · Stand 20.10.2026 · AMYboard im Eurorack-Case
+Version 13.21 · Stand 22.10.2026 · AMYboard im Eurorack-Case
 
 ---
 
@@ -131,6 +131,10 @@ SPIELEN (Startseite)
     │   ├─ CV MOD OUT1 · CV MOD OUT2 (AUS/LFO/ENV)
     │   ├─ CV LFO ─► WELLE · RATE · TIEFE · FOLD · LFO DRIVE · FOLD MIX · FOLD MOD · MOD TIEFE
     │   ├─ CV ENV ─► ATTACK · RELEASE · TIEFE · FOLD · ENV DRIVE · FOLD MIX
+    │   ├─ VCO ─► VCO · 1V/OKT IN · TONHOEHE (FREI/QUANT) · SKALA · GRUNDTON 0V · VCO FEIN · V/OKT
+    │   │        WELLE · VCO PW · VCO SUB · SUB OKTAVE · VCO OSZ 2 · INTERVALL · VCO DETUNE
+    │   │        MOD IN · MOD ZIEL (FM/PWM/FOLD) · VCO MOD · FOLD · VCO DRIVE · FOLD MIX
+    │   │        VCO LEVEL · PAN · BUS
     │   ├─ SCOPE
     │   └─ KALIBRIERUNG ─► OUT1 OFFSET · OUT1 SKALA · OUT2 OFFSET · OUT2 SKALA · TESTSPANNUNG
     │
@@ -314,8 +318,33 @@ Eine Karte mit vier Ecken erzeugt die Drum-Patterns. X und Y mischen stufenlos z
 - **WAVEFOLDER (v13.20):** CV LFO › FOLD (CLIP/FOLD/CLIP+FOLD) faltet den LFO in AMY. TIEFE wirkt vor dem Folder (wie der Eingangspegel), LFO DRIVE verstärkt zusätzlich, FOLD MIX blendet zwischen glatt und gefaltet. FOLD MOD = CV IN1/IN2 verschiebt den Drive per Spannung (MOD TIEFE 1 = ±2 Oktaven, 5 V = voller Ausschlag). Oben auf der Seite zeigt eine Vorschau die Welle (Näherung). LFO DRIVE und ENV DRIVE lassen sich als Makro oder Encoder belegen. CV ENV hat FOLD, ENV DRIVE und FOLD MIX ebenfalls.
 - **KALIBRIERUNG:** TESTSPANNUNG auf 0–4 V stellen, am Oszillator oder Stimmgerät nachmessen, dann OFFSET/SKALA pro Ausgang anpassen.
 
+#### VCO (v13.21)
+**MODULAR › VCO** macht das AMYboard zu einem eigenständigen Oszillator: Es klingt dauerhaft (kein MIDI, kein Gate nötig), die Tonhöhe kommt per 1 V/Okt über CV IN 1 oder IN 2. Ausgang ist der normale Audio-Ausgang des AMYboards, Lautstärke und Hüllkurve machen VCA und ADSR im Rack.
+
+| Eintrag | Wirkung |
+|---|---|
+| **VCO** | AN/AUS |
+| **1V/OKT IN** | AUS · IN1 · IN2: welcher Eingang die Tonhöhe steuert |
+| **TONHOEHE** | FREI = stufenlos (AMY rechnet die Spannung selbst, ohne Python) · QUANT = auf die SKALA gerastet |
+| **GRUNDTON 0V** | Note bei 0 V (Werk C1, wie MIDI>CV) |
+| **VCO FEIN** | ±100 Cent |
+| **V/OKT** | Tracking-Abgleich 0.950–1.050, falls Oktaven nicht sauber sitzen |
+| **WELLE** | SIN · TRI · SAW · PULS; **VCO PW** = Pulsbreite (nur PULS) |
+| **VCO SUB** | Pegel des Sub-Oszillators (Rechteck), **SUB OKTAVE** −1 oder −2 |
+| **VCO OSZ 2** | Pegel eines zweiten Oszillators mit gleicher Welle; **INTERVALL** ±24 Halbtöne, **VCO DETUNE** 0–50 Cent (Schwebung) |
+| **MOD IN** | AUS · IN1 · IN2: zweiter CV-Eingang zur Modulation |
+| **MOD ZIEL** | **FM** (Tonhöhe, VCO MOD 1 = 1 Okt/V) · **PWM** (VCO MOD 1 = 0,08 pro Volt) · **FOLD** (verschiebt VCO DRIVE, 5 V = voller Ausschlag) |
+| **FOLD · VCO DRIVE · FOLD MIX** | Wavefolder am Haupt-Oszillator (wie beim CV LFO) |
+| **VCO LEVEL · PAN · BUS** | Pegel und Effekt-Bus (Reverb, Echo, EQ, Distortion des Busses wirken mit) |
+
+- **Stimmen:** Oben auf der Seite stehen die aktuelle Note, die Frequenz und die Abweichung in Cent (Balken in der Mitte = genau). Zum Abgleich eine bekannte Spannung anlegen, z. B. MODUS MIDI>CV, OUT 1 → IN 1 und auf dem Keyboard C1 und C5 spielen (die Tonhöhe bleibt nach dem Loslassen stehen). GRUNDTON/FEIN so stellen, dass C1 auf 0 ct steht, dann V/OKT so, dass auch C5 0 ct zeigt.
+- **FM und PWM** laufen in AMY und werden pro Audio-Block (ca. 6 ms) nachgeführt – für Vibrato, Pitch-Hüllkurven und langsame PWM gedacht, nicht für Audio-Rate-FM. FOLD-Modulation läuft alle 30 ms, QUANT folgt dem Eingang alle ca. 40 ms.
+- Belegt nichts: CV1>FILTER, GATE+PITCH, Grids usw. können denselben Eingang weiter lesen.
+- VCO FEIN, VCO PW, VCO SUB, VCO OSZ 2, VCO DETUNE, VCO DRIVE, VCO MOD und VCO LEVEL lassen sich als Makro oder Zusatz-Encoder belegen. Der VCO-Zustand gehört zu den Szenen. PANIC lässt den VCO weiterlaufen.
+- Zeigt die Zeile VCO in MODULAR **FEHLT**, hat die Firmware keinen freien Synth (SETUP › INFO › VCO-SYNTH).
+
 ### SZENEN
-- Eine Szene speichert Klang, Mixer, Effekte (auch die Bus-Distortion), Tempo, Swing und alle Sequencer-Patterns (auch die Drum-Spur mit ihrer SAMPLE-Zuordnung und die 303 mit ihrer Distortion). Encoder-, MIDI-, WLAN- und **Sampler-Einstellungen** gehören nicht dazu.
+- Eine Szene speichert Klang, Mixer, Effekte (auch die Bus-Distortion), den VCO, Tempo, Swing und alle Sequencer-Patterns (auch die Drum-Spur mit ihrer SAMPLE-Zuordnung und die 303 mit ihrer Distortion). Encoder-, MIDI-, WLAN- und **Sampler-Einstellungen** gehören nicht dazu.
 - **MORPH A>B** blendet stufenlos zwischen zwei Szenen: Pegel, Pan, Filter, Effekte, Master, Tempo, 303-Klang (inkl. 303 DRIVE und DIST MIX), Grids X/Y. Patches wechseln nur beim LADEN.
 - Tipp: MORPH auf einen Zusatz-Encoder legen.
 
