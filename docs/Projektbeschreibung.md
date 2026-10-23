@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Projektbeschreibung
 
-Stand 22.10.2026 · Sketch-Version 13.21 (13.18 auf der Hardware bestätigt)
+Stand 23.10.2026 · Sketch-Version 13.22 (13.18 auf der Hardware bestätigt)
 
 ## Ziel
 
@@ -80,6 +80,7 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 | 13.19 | 20.10.2026 | DX7-Bänke von SD (`fm.load_syx`), Taster der Zusatz-Encoder (kurz/lang), Filter NOTCH/PHASER für Slots, Slices über MIDI (PAD-KANAL Noten 44–59) |
 | 13.20 | 21.10.2026 | Wavefolder für CV LFO und CV ENV (FOLD/DRIVE/MIX in AMY), FOLD MOD über CV IN1/IN2, Vorschau der gefalteten Welle |
 | 13.21 | 22.10.2026 | VCO: AMYboard als eigenständiger Oszillator (1 V/Okt an CV IN1/IN2 direkt in AMY, Sub, zweiter Oszillator, Wavefolder, FM/PWM/FOLD per CV, QUANT, Stimmanzeige) |
+| 13.22 | 23.10.2026 | AUDIO IN: Stereo-Eingang live durch Gain, Distortion, Filter und die Bus-Effekte (Synths 41/42 mit `AUDIO_IN0/1`), Pegelanzeige, Taster-Funktion, Makros, Statuszeile `IN` |
 
 ## Offene Punkte (auf der Hardware zu prüfen)
 
@@ -92,6 +93,7 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 7. **Kalibrierung nach Firmware-Update prüfen:** Seit dem Update vom 10.08.2026 ist `cv_in` neu kalibriert (ein konstanter Versatz von −0,6 V entfällt) und v1.5-Boards geben den vollen DAC-Bereich aus. Alte OFFSET-/SKALA-Werte unter MODULAR › KALIBRIERUNG können danach falsch sein.
 8. **EQ nach Firmware-Update:** Die Firmware hat das Vorzeichen im EQ-Bassband korrigiert. Das PUNCH-Profil auf dem Drum-Bus kann danach bassiger klingen als gewohnt.
 9. **VCO (v13.21):** Trackt `freq` mit `ext0`/`ext1` sauber 1 V/Okt über 5 Oktaven (V/OKT-Abgleich)? Läuft Synth 40 (SETUP › INFO › VCO-SYNTH)? Klingt die `chained_osc`-Kette (SUB, OSZ 2) und bleibt der Pegel mit beiden voll aufgedreht ohne Übersteuern?
+10. **AUDIO IN (v13.22):** Spielt die Firmware `AUDIO_IN0/1` als Oszillator (Eingang hörbar, nicht nur in der Pegelanzeige)? Stereo richtig herum? Latenz, Rauschen bei IN GAIN +12 dB, Knacken beim Schalten. SETUP › INFO › AUDIO IN muss 41/42 zeigen.
 
 ## Stand der Firmware-Neuerungen (Discord #announcements bis 12.09.2026, GitHub bis v1.2.200)
 

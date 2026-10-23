@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – User Manual
 
-Version 13.21 · 22 Oct 2026 · AMYboard in a Eurorack case · English edition
+Version 13.22 · 23 Oct 2026 · AMYboard in a Eurorack case · English edition
 
 This manual describes the English edition of the sketch (`sketch_v13.19_en.py`), where all menus are in English. The German edition works the same way. Saved settings and scenes can be used by both.
 
@@ -43,12 +43,13 @@ Supported are an M5Stack 8-Encoder (**E1–E8**) and up to two Adafruit Quad #57
 | PANIC (LONG) | – | All notes off |
 | MUTE K1–K4 | Mute/unmute the channel | – |
 | MUTE 303 / MUTE DRUMS | Mute/unmute the track | – |
+| AUDIO IN | Input on/off (MODULAR › AUDIO IN) | – |
 | OFF | Not read | |
 
 Default: E1–E4 PAGE, E5 master, E6 level, E7 reverb, E8 echo, **Q1–Q4 PATCH K1–K4**, Q5–Q8 OFF. The assignment stays saved even if a device is not connected for a while.
 
 ### Status line (top)
-`C1` = current MIDI channel · patch family (JUNO/DX7/DRUM …, `SMP` = sampler channel) · tempo · ▶ running / ■ stopped. The thin line below shows the CPU load (bright from 85 %).
+`C1` = current MIDI channel · patch family (JUNO/DX7/DRUM …, `SMP` = sampler channel) · `IN` = AUDIO IN running · tempo · ▶ running / ■ stopped. The thin line below shows the CPU load (bright from 85 %).
 
 ---
 
@@ -137,6 +138,9 @@ HOME (start page)
     │   │        WAVE · VCO PW · VCO SUB · SUB OCTAVE · VCO OSC 2 · INTERVAL · VCO DETUNE
     │   │        MOD IN · MOD TARGET (FM/PWM/FOLD) · VCO MOD · FOLD · VCO DRIVE · FOLD MIX
     │   │        VCO LEVEL · PAN · BUS
+    │   ├─ AUDIO IN ─► AUDIO IN · MODE (STEREO/MONO/L ONLY/R ONLY) · IN GAIN · IN LEVEL · IN PAN
+    │   │             WIDTH · BUS · BUS FX · FILTER · IN CUTOFF · IN RESO
+    │   │             DISTORTION · IN DRIVE · DIST MIX
     │   ├─ SCOPE
     │   └─ CALIBRATION ─► OUT1 OFFSET · OUT1 SCALE · OUT2 OFFSET · OUT2 SCALE · TEST VOLTAGE
     │
@@ -347,8 +351,29 @@ A map with four corners creates the drum patterns. X and Y blend smoothly betwee
 - VCO FINE, VCO PW, VCO SUB, VCO OSC 2, VCO DETUNE, VCO DRIVE, VCO MOD and VCO LEVEL can be assigned to a macro or extra encoder. The VCO state is part of the scenes. PANIC keeps the VCO running.
 - If the VCO line in MODULAR shows **MISSING**, the firmware has no free synth (SETUP › INFO › VCO SYNTH).
 
+#### AUDIO IN (v13.22)
+**MODULAR › AUDIO IN** routes the stereo input to the output permanently – the AMYboard becomes an effects unit in the rack. The input runs through distortion and filter, then through an effect bus with reverb, chorus, echo, EQ, bus distortion and crush. AMY plays the input itself, so the user interface does not slow it down.
+
+| Item | Function |
+|---|---|
+| **AUDIO IN** | ON/OFF (OFF by default) |
+| **MODE** | **STEREO** (L left, R right) · **MONO** (L+R together at IN PAN, −6 dB each) · **L ONLY** · **R ONLY** |
+| **IN GAIN** | input gain −24 … +12 dB, before distortion and filter |
+| **IN LEVEL** | output level |
+| **IN PAN · WIDTH** | position; WIDTH (STEREO only) 1 = full stereo width, 0 = both sides at IN PAN |
+| **BUS** | effect bus (default 2, so synths and drums keep their own effects) |
+| **BUS FX** | opens EFFECTS directly for the input's bus |
+| **FILTER · IN CUTOFF · IN RESO** | OFF · LP · BP · HP · LP24 (· NOTCH · PHASER), as for sample slots |
+| **DISTORTION · IN DRIVE · DIST MIX** | CLIP/FOLD before the filter |
+
+- **Level meter** at the top: L and R of the input (before IN GAIN) with marks at −24/−12/−6 dB, peak value on the right, **CLIP** when clipping. It also runs while OFF, so you can check the level before switching on. Below it: mode (ST/MO/L/R), bus, filter, distortion.
+- **Everywhere:** `IN` in the status line shows the input is running. With the button function **AUDIO IN** (SETUP › ENCODER › BUTTONS) an extra encoder switches it on and off from any page. IN GAIN, IN LEVEL, IN PAN, IN CUTOFF, IN RESO and IN DRIVE can be assigned to a macro or extra encoder.
+- **Scenes** store all input settings but do not switch it on or off. PANIC keeps it running.
+- **Beware of feedback:** do not patch the AMYboard's output into its own input while AUDIO IN is on.
+- If the meter does not move: check the DIP switches on the back, cable and level. If MODULAR shows **MISSING**, the firmware has no free synths (SETUP › INFO › AUDIO IN).
+
 ### SCENES
-- A scene saves sound, mixer, effects (including the bus distortion), the VCO, tempo, swing and all sequencer patterns (including the drum track with its SAMPLE assignment and the 303 with its distortion). Encoder, MIDI, WLAN and **sampler settings** are not included.
+- A scene saves sound, mixer, effects (including the bus distortion), the VCO, the AUDIO IN settings (not ON/OFF), tempo, swing and all sequencer patterns (including the drum track with its SAMPLE assignment and the 303 with its distortion). Encoder, MIDI, WLAN and **sampler settings** are not included.
 - **MORPH A>B** blends smoothly between two scenes: levels, pan, filter, effects, master, tempo, 303 sound (incl. 303 DRIVE and DIST MIX), Grids X/Y. Patches only change when you LOAD a scene.
 - Tip: put MORPH on an extra encoder.
 

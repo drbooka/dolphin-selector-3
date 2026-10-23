@@ -24,7 +24,7 @@ try:
     import random as _random
 except Exception:
     _random = None
-VERSION = "13.21"
+VERSION = "13.22"
 def clamp(v, lo, hi):
     if v < lo:
         return lo
@@ -655,6 +655,10 @@ def new_vco():
             "pw": 0.5, "sub": 0.0, "so": 1, "o2": 0.0, "iv": 0, "det": 7,
             "pm": 0, "sc": 0, "msrc": 0, "mt": 0, "md": 0.3,
             "ft": 0, "fd": 2.0, "fm": 1.0, "lvl": 0.8, "pan": 0.5, "bus": 0}
+def new_ain():
+    return {"on": 0, "mode": 0, "gain": 0.0, "lvl": 1.0, "pan": 0.5, "wid": 1.0,
+            "bus": 2, "ft": 0, "cu": 8000.0, "rs": 0.7,
+            "dt": 0, "dd": 4.0, "dm": 1.0}
 USER_BASE = 1024
 ENCF_DEFAULT = ("SCREEN", "SCREEN", "SCREEN", "SCREEN",
                 "master", "lvl", "rvL", "ecL",
@@ -699,6 +703,7 @@ def default_state():
         "uit": 1, "dfast": 1,
         "sqm": 1, "vlf": 250,
         "vco": new_vco(),
+        "ain": new_ain(),
     }
     for k, v in TONE_DEF:
         s[k] = [v] * 17
@@ -899,7 +904,23 @@ def sanitize():
     S["lfof"][3] = clamp_int(S["lfof"][3], 0, 2)
     S["lfof"][4] = clamp(S["lfof"][4], 0.0, 1.0)
     _sanitize_vco()
+    _sanitize_ain()
     _sanitize_sampler()
+def _sanitize_ain():
+    a = S["ain"]
+    a["on"] = 1 if a["on"] else 0
+    a["mode"] %= len(AIN_MODE_NAMES)
+    a["gain"] = clamp(a["gain"], AIN_GAIN_MIN, AIN_GAIN_MAX)
+    a["lvl"] = clamp(a["lvl"], 0.0, 1.5)
+    a["pan"] = clamp(a["pan"], 0.0, 1.0)
+    a["wid"] = clamp(a["wid"], 0.0, 1.0)
+    a["bus"] = clamp_int(a["bus"], 0, 3)
+    a["ft"] %= len(SMP_FILT_NAMES)
+    a["cu"] = clamp(a["cu"], 40.0, 16000.0)
+    a["rs"] = clamp(a["rs"], 0.5, 16.0)
+    a["dt"] = clamp_int(a["dt"], 0, len(DIST_TYPES) - 1)
+    a["dd"] = clamp(a["dd"], DIST_DRIVE_MIN, DIST_DRIVE_MAX)
+    a["dm"] = clamp(a["dm"], 0.0, 1.0)
 def _sanitize_vco():
     v = S["vco"]
     v["on"] = 1 if v["on"] else 0
@@ -1710,6 +1731,8 @@ def active_buses():
             buses.add(sl["bus"])
     if S["vco"]["on"]:
         buses.add(S["vco"]["bus"])
+    if S["ain"]["on"]:
+        buses.add(S["ain"]["bus"])
     return buses
 def headroom_scale():
     n = 0
@@ -1768,6 +1791,11 @@ def apply_audio_mode():
             _vco_send_out()
         except Exception as e:
             print("VCO PAN", e)
+    if _ain_running:
+        try:
+            _ain_send_out()
+        except Exception as e:
+            print("AUDIO IN PAN", e)
 CC_TARGETS = [
     ("CUT", 1, 100.0, 8000.0, 0.0, "i%iv0F%v"),
     ("RES", 0, 0.5, 8.0, 0.0, "i%iv0R%v"),
@@ -2361,6 +2389,165 @@ def vco_pitch_now():
     if v["msrc"] and v["mt"] == 0:
         n += cv_in_v[v["msrc"] - 1] * 12.0 * v["md"] * VCO_FM_OCT
     return n
+AIN_MODE_NAMES = ["STEREO", "MONO", "L ONLY", "R ONLY"]
+AIN_WAVES = (getattr(amy, "AUDIO_IN0", 12), getattr(amy, "AUDIO_IN1", 13))
+AIN_BP0 = "5,1,60,0"
+AIN_GAIN_MIN = -24.0
+AIN_GAIN_MAX = 12.0
+AIN_METER_FLOOR = -48.0
+AIN_CLIP = 32000
+AIN_CLIP_MS = 1500
+AIN_SYNTHS = None
+_ain_running = False
+_ain_gate = [False, False]
+_ain_meter = [0.0, 0.0]
+_ain_clip = [None, None]
+def ain_init():
+    global AIN_SYNTHS
+    AIN_SYNTHS = None
+    try:
+        amy.send(synth=42, num_voices=1, oscs_per_voice=1)
+        if amy.get_synth_commands(42).strip():
+            AIN_SYNTHS = (41, 42)
+    except Exception as e:
+        print("AUDIO IN PROBE", e)
+    print("AUDIO-IN-SYNTHS", AIN_SYNTHS)
+    if S["ain"]["on"]:
+        ain_start()
+def _ain_want():
+    m = S["ain"]["mode"]
+    return (m != 3, m != 2)
+def _ain_pans():
+    a = S["ain"]
+    if S["audio"] == 1:
+        return (0.5, 0.5)
+    p = a["pan"]
+    if a["mode"] == 0:
+        h = a["wid"] / 2.0
+        return (clamp(p - h, 0.0, 1.0), clamp(p + h, 0.0, 1.0))
+    return (p, p)
+def ain_gain_factor():
+    a = S["ain"]
+    g = 10 ** (a["gain"] / 20.0)
+    if a["mode"] == 1:
+        g *= 0.5
+    return g
+def _ain_send_gain():
+    g = round(ain_gain_factor(), 4)
+    for s in AIN_SYNTHS:
+        amy.send(synth=s, osc=0, amp={"const": g})
+def _ain_send_out():
+    a = S["ain"]
+    pl = _ain_pans()
+    for i in (0, 1):
+        amy.send(synth=AIN_SYNTHS[i], osc=0, pan=round(pl[i], 3))
+        amy.send(synth=AIN_SYNTHS[i], synth_level=a["lvl"])
+def _ain_send_filter():
+    a = S["ain"]
+    ft = a["ft"]
+    for s in AIN_SYNTHS:
+        amy.send(synth=s, osc=0, filter_type=SMP_FILT_VALS[ft])
+        if ft:
+            amy.send(synth=s, osc=0, filter_freq={"const": round(a["cu"], 1)},
+                     resonance=a["rs"])
+def _ain_send_dist():
+    if not DIST_OK:
+        return
+    a = S["ain"]
+    for s in AIN_SYNTHS:
+        amy.send(synth=s, osc=0, **dist_args(a["dt"], a["dd"], a["dm"]))
+def _ain_send_gate():
+    w = _ain_want()
+    for i in (0, 1):
+        if w[i] and not _ain_gate[i]:
+            amy.send(synth=AIN_SYNTHS[i], note=60, vel=1)
+            _ain_gate[i] = True
+        elif not w[i] and _ain_gate[i]:
+            amy.send(synth=AIN_SYNTHS[i], vel=0)
+            _ain_gate[i] = False
+def ain_start():
+    global _ain_running
+    if AIN_SYNTHS is None:
+        S["ain"]["on"] = 0
+        toast("AUDIO IN", "NO FREE SYNTH", 1800)
+        return False
+    a = S["ain"]
+    try:
+        for i in (0, 1):
+            s = AIN_SYNTHS[i]
+            amy.send(synth=s, num_voices=1, oscs_per_voice=1, bus=a["bus"])
+            amy.send(synth=s, osc=0, wave=AIN_WAVES[i], bp0=AIN_BP0)
+            _ain_gate[i] = False
+        _ain_send_gain()
+        _ain_send_dist()
+        _ain_send_filter()
+        _ain_send_out()
+        _ain_send_gate()
+        _ain_running = True
+    except Exception as e:
+        print("AUDIO IN START", e)
+        toast("AUDIO IN", "ERROR", 1500)
+        return False
+    refresh_buses()
+    return True
+def ain_stop():
+    global _ain_running
+    if AIN_SYNTHS is not None:
+        for i in (0, 1):
+            try:
+                amy.send(synth=AIN_SYNTHS[i], vel=0)
+            except Exception as e:
+                print("AUDIO IN STOP", e)
+            _ain_gate[i] = False
+    _ain_running = False
+    refresh_buses()
+def ain_apply_all():
+    if S["ain"]["on"]:
+        ain_start()
+    elif _ain_running:
+        ain_stop()
+def ain_toggle():
+    S["ain"]["on"] = 0 if S["ain"]["on"] else 1
+    ain_apply_all()
+    toast("AUDIO IN", "ON" if _ain_running else "OFF", 700)
+    request_save()
+def ain_meter_read():
+    getbuf = getattr(amy, "get_input_buffer", None)
+    if getbuf is None:
+        return False
+    try:
+        b = getbuf()
+    except Exception:
+        return False
+    pk = [0, 0]
+    if b:
+        a = array("h", bytes(b))
+        for i in range(0, len(a) - 1, 4):
+            v = a[i]
+            if v < 0:
+                v = -v
+            if v > pk[0]:
+                pk[0] = v
+            v = a[i + 1]
+            if v < 0:
+                v = -v
+            if v > pk[1]:
+                pk[1] = v
+    t = now()
+    for i in (0, 1):
+        if pk[i] >= AIN_CLIP:
+            _ain_clip[i] = t
+        p = pk[i] / 32767.0
+        _ain_meter[i] = p if p > _ain_meter[i] else _ain_meter[i] * 0.7
+    return True
+def ain_clipping(i):
+    c = _ain_clip[i]
+    return c is not None and since(c) < AIN_CLIP_MS
+def ain_db(i):
+    p = _ain_meter[i]
+    if p <= 0.00001:
+        return AIN_METER_FLOOR
+    return max(AIN_METER_FLOOR, 20.0 * math.log10(p))
 SMP_SLOTS = 8
 SMP_PRESET_BASE = 1040
 SMP_MAX_MS = 10000
@@ -4462,7 +4649,7 @@ def reset_all_midi():
 SCENE_KEYS = ("pat", "vo", "bus", "lvl", "pan", "mute", "chord", "porta",
               "cut", "res", "att", "dec", "sus", "rel", "lfr", "lfd", "alg",
               "fb", "tch", "fx", "master", "crush", "crate", "tempo", "swing",
-              "trk", "acid", "drm", "syx", "vco")
+              "trk", "acid", "drm", "syx", "vco", "ain")
 scenes = [None] * 8
 def scenes_load():
     global scenes
@@ -4494,10 +4681,12 @@ def scene_recall(i):
     if sc is None:
         toast("SCENE %d" % (i + 1), "EMPTY")
         return
+    ain_on = S["ain"]["on"]
     dflt = default_state()
     for k in SCENE_KEYS:
         if k in sc:
             S[k] = _merge(dflt[k], deep_copy(sc[k]))
+    S["ain"]["on"] = ain_on
     sanitize()
     for rt in RTS:
         rt.pending = None
@@ -4506,6 +4695,7 @@ def scene_recall(i):
     acid_setup()
     apply_eurorack_mode()
     vco_apply_all()
+    ain_apply_all()
     request_save()
     toast("SCENE %d" % (i + 1), "LOADED")
 def scene_delete(i):
@@ -4802,6 +4992,8 @@ def draw_status():
     TC("C%d" % ch, 13, 1, 0)
     T("SMP" if chrom_owns(ch) else FAMILY_SHORT[family(S["pat"][ch])], 30, 1,
       MID if not S["mute"][ch] else DIM)
+    if _ain_running:
+        T("IN", 66, 1, LO)
     TR("%d" % S["tempo"], 110, 1, LO)
     if S["run"]:
         for k in range(4):
@@ -5427,12 +5619,56 @@ P_VLVL = P("VCO LEVEL", rV("lvl"), 0.0, 1.5, 0.02, apply=_vco_do(_vco_send_out),
            key="vlvl", short="VLVL")
 P_VPAN = P("PAN", rV("pan"), 0.0, 1.0, 0.02, bip=True, apply=_vco_do(_vco_send_out))
 P_VBUS = P("BUS", rV("bus"), 0, 3, 1, "%d", apply=_vco_bus_changed)
+def rI(k):
+    return lambda: (S["ain"], k)
+def _ain_do(fn):
+    def f():
+        if _ain_running:
+            fn()
+    return f
+def _ain_mode_changed():
+    if _ain_running:
+        _ain_send_gain()
+        _ain_send_out()
+        _ain_send_gate()
+def _ain_bus_changed():
+    if _ain_running:
+        for s in AIN_SYNTHS:
+            amy.send(synth=s, bus=S["ain"]["bus"])
+    refresh_buses()
+def _ain_filt_on():
+    return S["ain"]["ft"] != 0
+def _ain_dist_on():
+    return DIST_OK and S["ain"]["dt"] != 0
+P_AON = P("AUDIO IN", rI("on"), kind=BOOL, apply=ain_apply_all)
+P_AMODE = P("MODE", rI("mode"), kind=ENUM, opts=AIN_MODE_NAMES, apply=_ain_mode_changed)
+P_AGAIN = P("IN GAIN", rI("gain"), AIN_GAIN_MIN, AIN_GAIN_MAX, 0.5, "%+.1f", unit="dB",
+            apply=_ain_do(_ain_send_gain), key="igain", short="IGN")
+P_ALVL = P("IN LEVEL", rI("lvl"), 0.0, 1.5, 0.02, apply=_ain_do(_ain_send_out),
+           key="ilvl", short="ILVL")
+P_APAN = P("IN PAN", rI("pan"), 0.0, 1.0, 0.02, bip=True, apply=_ain_do(_ain_send_out),
+           key="ipan", short="IPAN")
+P_AWID = P("WIDTH", rI("wid"), 0.0, 1.0, 0.05, apply=_ain_do(_ain_send_out),
+           vis=lambda: S["ain"]["mode"] == 0)
+P_ABUS = P("BUS", rI("bus"), 0, 3, 1, "%d", apply=_ain_bus_changed)
+P_AFT = P("FILTER", rI("ft"), kind=ENUM, opts=SMP_FILT_NAMES, apply=_ain_do(_ain_send_filter))
+P_ACU = P("IN CUTOFF", rI("cu"), 40.0, 16000.0, 1, fmtf=_hz, unit="Hz", log=True,
+          apply=_ain_do(_ain_send_filter), key="icut", short="ICUT", vis=_ain_filt_on)
+P_ARS = P("IN RESO", rI("rs"), 0.5, 16.0, 0.1, "%.1f", apply=_ain_do(_ain_send_filter),
+          key="ires", short="IRES", vis=_ain_filt_on)
+P_ADT = P("DISTORTION", rI("dt"), kind=ENUM, opts=DIST_TYPES,
+          apply=_ain_do(_ain_send_dist), vis=lambda: DIST_OK)
+P_ADD = P("IN DRIVE", rI("dd"), DIST_DRIVE_MIN, DIST_DRIVE_MAX, 1, "%.1f", log=True,
+          apply=_ain_do(_ain_send_dist), key="idrv", short="IDRV", vis=_ain_dist_on)
+P_ADM = P("DIST MIX", rI("dm"), 0.0, 1.0, 0.05, apply=_ain_do(_ain_send_dist),
+          vis=_ain_dist_on)
 ASSIGN_KEYS = ["master", "lvl", "pan", "cut", "res", "att", "dec", "sus", "rel",
                "lfr", "lfd", "porta", "rvL", "rvV", "rvD", "rvX", "chL", "chR",
                "chD", "chM", "ecL", "ecT", "ecF", "ecC", "eqL", "eqM", "eqH",
                "tempo", "swing", "morph", "acut", "ares", "aenv", "adec", "aacc",
                "alvl", "lfoR", "lfoD", "gx", "gy", "adrv", "dsD", "lfoF", "envF",
-               "vfin", "vpw", "vsub", "vo2", "vdet", "vdrv", "vmd", "vlvl"]
+               "vfin", "vpw", "vsub", "vo2", "vdet", "vdrv", "vmd", "vlvl",
+               "igain", "ilvl", "ipan", "icut", "ires", "idrv"]
 ASSIGN_NAMES = [REG[k].label for k in ASSIGN_KEYS]
 PATCH_ENC_CHANNELS = (1, 2, 3, 4)
 MELODIC_PATCHES = [p for p in ALL_PATCHES if not is_drum(p)]
@@ -5479,9 +5715,10 @@ def _encf_changed():
 P_ENCF = [P(ENC_SLOT_NAMES[i], rL("encf", i), kind=ENUM, opts=ENC_NAMES, vals=ENC_KEYS,
             apply=_encf_changed) for i in range(ENC_SLOTS)]
 ENCB_KEYS = ["AUS", "KONTEXT", "START", "TAP", "PANIC", "MUTE1", "MUTE2", "MUTE3",
-             "MUTE4", "M303", "MDRM"]
+             "MUTE4", "M303", "MDRM", "AIN"]
 ENCB_NAMES = ["OFF", "CONTEXT", "START/STOP", "TAP TEMPO", "PANIC (LONG)", "MUTE K1",
-              "MUTE K2", "MUTE K3", "MUTE K4", "MUTE 303", "MUTE DRUMS"]
+              "MUTE K2", "MUTE K3", "MUTE K4", "MUTE 303", "MUTE DRUMS",
+              "AUDIO IN"]
 P_ENCB = [P(ENC_SLOT_NAMES[i] + " BUTTON", rL("encb", i), kind=ENUM, opts=ENCB_NAMES,
             vals=ENCB_KEYS) for i in range(ENC_SLOTS)]
 P_MACRO = [P("MACRO %d" % (i + 1), rL("macro", i), kind=ENUM, opts=ASSIGN_NAMES,
@@ -6127,9 +6364,9 @@ def klang_page():
     return ListPage(lambda: "SOUND K%d" % S["cur"], klang_items,
                     right=lambda: FAMILY_SHORT[cur_family()])
 _fxb_ui = [0]
-def _fx_enter():
+def _fx_enter(bus=None):
     global _fx_bus_override
-    _fxb_ui[0] = S["bus"][S["cur"]]
+    _fxb_ui[0] = S["bus"][S["cur"]] if bus is None else bus
     _fx_bus_override = _fxb_ui[0]
 def _fx_leave():
     global _fx_bus_override
@@ -6142,8 +6379,10 @@ P_FXBUS = P("BUS", lambda: (_fxb_ui, 0), 0, 3, 1, "%d", kind=ENUM,
 def _bus_users():
     b = fx_bus()
     chs = [str(ch) for ch in range(1, 17) if S["pat"][ch] != -1 and S["bus"][ch] == b]
+    if S["ain"]["on"] and S["ain"]["bus"] == b:
+        chs.insert(0, "IN")
     return ",".join(chs)[:6] if chs else "-"
-def fx_page():
+def fx_page(bus=None):
     return ListPage(lambda: "EFFECTS BUS %d" % fx_bus(), [
         P_FXBUS,
         infoline("CHANNELS", _bus_users),
@@ -6162,7 +6401,7 @@ def fx_page():
         P_MASTER, P_CRUSH, P_CRATE,
         action("BUS RESET", lambda: push(Confirm("BUS RESET", "EFFECTS BUS %d" % fx_bus(),
                                                  "TO DEFAULT?", lambda: reset_bus_fx(fx_bus()))))],
-        on_enter=_fx_enter, on_leave=_fx_leave)
+        on_enter=lambda: _fx_enter(bus), on_leave=_fx_leave)
 class SeqPage(Page):
     def __init__(self):
         self.cur = S["sel"]
@@ -6728,6 +6967,60 @@ class VcoPage(ListPage):
                 LN(px, py, xx, yy, W if on else LO)
             px, py = xx, yy
         HL(0, 62, 128, GH)
+def _ain_info():
+    if AIN_SYNTHS is None:
+        return "MISSING"
+    return "ON" if _ain_running else "OFF"
+def ain_items():
+    return [P_AON, P_AMODE, P_AGAIN, P_ALVL, P_APAN, P_AWID, P_ABUS,
+            link("BUS FX", lambda: fx_page(S["ain"]["bus"]),
+                 info=lambda: "BUS %d" % S["ain"]["bus"]),
+            P_AFT, P_ACU, P_ARS, P_ADT, P_ADD, P_ADM]
+class AinPage(ListPage):
+    def __init__(self):
+        ListPage.__init__(self, "AUDIO IN", ain_items)
+        self.y0 = 66
+        self.n = 4
+        self._next = 0
+        self._shown = None
+    def tick(self):
+        if since(self._next) < 0:
+            return False
+        self._next = time.ticks_add(now(), 80)
+        ok = ain_meter_read()
+        k = (int(ain_db(0)), int(ain_db(1)), ain_clipping(0), ain_clipping(1),
+             _ain_running, ok)
+        if k != self._shown:
+            self._shown = k
+            return True
+        return False
+    def draw_head(self):
+        a = S["ain"]
+        draw_title("AUDIO IN", "ON" if _ain_running else "OFF")
+        want = _ain_want()
+        span = -AIN_METER_FLOOR
+        for i in (0, 1):
+            y = 28 + i * 11
+            T("LR"[i], 1, y, MID if want[i] else DIM)
+            db = ain_db(i)
+            clip = ain_clipping(i)
+            bar(12, y + 1, 78, 6, (db - AIN_METER_FLOOR) / span,
+                W if clip else (HI if _ain_running else LO))
+            for m in (-24, -12, -6):
+                VL(12 + int(78 * (m - AIN_METER_FLOOR) / span), y, 8, GH + 2)
+            if clip:
+                TR("CLIP", 128, y, W)
+            elif db <= AIN_METER_FLOOR:
+                TR("--", 128, y, DIM)
+            else:
+                TR("%d" % int(db), 128, y, MID)
+        info = ("ST", "MO", "L", "R")[a["mode"]] + " B%d" % a["bus"]
+        if a["ft"]:
+            info += " " + SMP_FILT_NAMES[a["ft"]] + " " + _hz(a["cu"])
+        if DIST_OK and a["dt"]:
+            info += " " + DIST_TYPES[a["dt"]][:4]
+        T(info[:16], 1, 51, DIM)
+        HL(0, 62, 128, GH)
 class ModularPage(ListPage):
     def __init__(self):
         ListPage.__init__(self, "MODULAR", [
@@ -6737,6 +7030,7 @@ class ModularPage(ListPage):
             link("CV ENV", lambda: ListPage("CV ENV", [P_ENVA, P_ENVR, P_ENVD,
                                                          P_ENFT, P_ENFD, P_ENFM])),
             link("VCO", lambda: VcoPage(), info=_vco_info),
+            link("AUDIO IN", lambda: AinPage(), info=_ain_info),
             link("SCOPE", lambda: ScopePage()),
             link("CALIBRATION", calib_page)])
         self.y0 = 72
@@ -7352,6 +7646,7 @@ def info_page():
         infoline("DISTORTION", lambda: "YES" if DIST_OK else "NO"),
         infoline("TEMPO SYNC", lambda: "YES" if FIT_OK else "NO"),
         infoline("VCO SYNTH", lambda: "%d" % VCO_SYNTH if VCO_SYNTH else "MISSING"),
+        infoline("AUDIO IN", lambda: "%d/%d" % AIN_SYNTHS if AIN_SYNTHS else "MISSING"),
         infoline("DX7 SD (FM)", lambda: "YES" if fm_mod() else "NO"),
         infoline("I2C", _i2c_count),
         infoline("RAM FREE", _free_mem),
@@ -7514,7 +7809,7 @@ CARDS = [
     ("MIXER", "16 CHANNELS", 1, MixerPage),
     ("EFFECTS", "REVERB CHORUS EQ", 2, fx_page),
     ("SEQUENCER", "TRACKS 303 DRUMS", 3, SeqPage),
-    ("MODULAR", "CV MONITOR KALIB", 4, ModularPage),
+    ("MODULAR", "CV VCO AUDIO IN", 4, ModularPage),
     ("SCENES", "8 SLOTS MORPH", 5, scenes_page),
     ("SAMPLER", "8 SLOTS + REC", 6, sampler_page),
     ("SETUP", "MIDI ENC WLAN", 7, setup_page),
@@ -7758,6 +8053,8 @@ def enc_button_action(sl, long):
         toast("TAP", "%d BPM" % S["tempo"], 700)
     elif a.startswith("MUTE"):
         _mute_toggle(int(a[4:]))
+    elif a == "AIN":
+        ain_toggle()
     elif a in ("M303", "MDRM"):
         i = ACID if a == "M303" else DRUM
         t = trk_cfg(i)
@@ -8118,6 +8415,10 @@ try:
     vco_init()
 except Exception as e:
     print("VCO INIT", e)
+try:
+    ain_init()
+except Exception as e:
+    print("AUDIO IN INIT", e)
 if S["run"]:
     S["run"] = 0
     try:

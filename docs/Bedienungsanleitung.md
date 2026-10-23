@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Bedienungsanleitung
 
-Version 13.21 · Stand 22.10.2026 · AMYboard im Eurorack-Case
+Version 13.22 · Stand 23.10.2026 · AMYboard im Eurorack-Case
 
 ---
 
@@ -41,12 +41,13 @@ Unterstützt werden ein M5Stack 8-Encoder (**E1–E8**) und bis zu zwei Adafruit
 | PANIC (LANG) | – | alle Noten aus |
 | MUTE K1–K4 | Kanal stumm/an | – |
 | MUTE 303 / MUTE DRUMS | Spur stumm/an | – |
+| AUDIO IN | Eingang an/aus (MODULAR › AUDIO IN) | – |
 | AUS | wird nicht abgefragt | |
 
 Ab Werk: E1–E4 SEITE, E5 Master, E6 Level, E7 Reverb, E8 Echo, **Q1–Q4 PATCH K1–K4**, Q5–Q8 AUS. Die Belegung bleibt gespeichert, auch wenn ein Gerät einmal nicht angeschlossen ist.
 
 ### Statuszeile (oben)
-`C1` = aktueller MIDI-Kanal · Patch-Familie (JUNO/DX7/DRUM …, `SMP` = Sampler-Kanal) · Tempo · ▶ läuft / ■ steht. Die dünne Linie darunter zeigt die CPU-Last (hell ab 85 %).
+`C1` = aktueller MIDI-Kanal · Patch-Familie (JUNO/DX7/DRUM …, `SMP` = Sampler-Kanal) · `IN` = AUDIO IN läuft · Tempo · ▶ läuft / ■ steht. Die dünne Linie darunter zeigt die CPU-Last (hell ab 85 %).
 
 ---
 
@@ -135,6 +136,9 @@ SPIELEN (Startseite)
     │   │        WELLE · VCO PW · VCO SUB · SUB OKTAVE · VCO OSZ 2 · INTERVALL · VCO DETUNE
     │   │        MOD IN · MOD ZIEL (FM/PWM/FOLD) · VCO MOD · FOLD · VCO DRIVE · FOLD MIX
     │   │        VCO LEVEL · PAN · BUS
+    │   ├─ AUDIO IN ─► AUDIO IN · MODUS (STEREO/MONO/NUR L/NUR R) · IN GAIN · IN LEVEL · IN PAN
+    │   │             BREITE · BUS · BUS-EFFEKTE · FILTER · IN CUTOFF · IN RESO
+    │   │             DISTORTION · IN DRIVE · DIST MIX
     │   ├─ SCOPE
     │   └─ KALIBRIERUNG ─► OUT1 OFFSET · OUT1 SKALA · OUT2 OFFSET · OUT2 SKALA · TESTSPANNUNG
     │
@@ -343,8 +347,29 @@ Eine Karte mit vier Ecken erzeugt die Drum-Patterns. X und Y mischen stufenlos z
 - VCO FEIN, VCO PW, VCO SUB, VCO OSZ 2, VCO DETUNE, VCO DRIVE, VCO MOD und VCO LEVEL lassen sich als Makro oder Zusatz-Encoder belegen. Der VCO-Zustand gehört zu den Szenen. PANIC lässt den VCO weiterlaufen.
 - Zeigt die Zeile VCO in MODULAR **FEHLT**, hat die Firmware keinen freien Synth (SETUP › INFO › VCO-SYNTH).
 
+#### AUDIO IN (v13.22)
+**MODULAR › AUDIO IN** schickt den Stereo-Eingang dauerhaft zum Ausgang – das AMYboard wird zum Effektgerät im Rack. Der Eingang läuft durch Distortion und Filter und danach über einen Effekt-Bus mit Reverb, Chorus, Echo, EQ, Bus-Distortion und Crush. AMY spielt den Eingang selbst, die Bedienung bremst ihn nicht.
+
+| Eintrag | Wirkung |
+|---|---|
+| **AUDIO IN** | AN/AUS (ab Werk AUS) |
+| **MODUS** | **STEREO** (L links, R rechts) · **MONO** (L+R zusammen auf IN PAN, je −6 dB) · **NUR L** · **NUR R** |
+| **IN GAIN** | Eingangsverstärkung −24 … +12 dB, wirkt vor Distortion und Filter |
+| **IN LEVEL** | Ausgangspegel |
+| **IN PAN · BREITE** | Position; BREITE (nur STEREO) 1 = volle Stereobreite, 0 = beide Seiten auf IN PAN |
+| **BUS** | Effekt-Bus (ab Werk 2, damit Synths und Drums ihre eigenen Effekte behalten) |
+| **BUS-EFFEKTE** | öffnet EFFEKTE direkt für den Bus des Eingangs |
+| **FILTER · IN CUTOFF · IN RESO** | AUS · TP · BP · HP · TP24 (· NOTCH · PHASER), wie bei den Sample-Slots |
+| **DISTORTION · IN DRIVE · DIST MIX** | CLIP/FOLD vor dem Filter |
+
+- **Pegelanzeige** oben: L und R des Eingangs (vor IN GAIN) mit Marken bei −24/−12/−6 dB, Spitzenwert rechts, **CLIP** bei Übersteuerung. Sie läuft auch bei AUS – so lässt sich der Pegel vor dem Einschalten prüfen. Darunter: Modus (ST/MO/L/R), Bus, Filter, Distortion.
+- **Überall:** `IN` in der Statuszeile zeigt, dass der Eingang läuft. Mit der Taster-Funktion **AUDIO IN** (SETUP › ENCODER › TASTER) schaltet ein Zusatz-Encoder ihn von jeder Seite an und aus. IN GAIN, IN LEVEL, IN PAN, IN CUTOFF, IN RESO und IN DRIVE lassen sich als Makro oder Zusatz-Encoder belegen.
+- **Szenen** speichern alle Einstellungen des Eingangs, schalten ihn aber nicht an oder aus. PANIC lässt ihn weiterlaufen.
+- **Achtung Rückkopplung:** den Ausgang des AMYboards nicht auf den eigenen Eingang patchen, solange AUDIO IN an ist.
+- Schlägt die Anzeige nicht aus: DIP-Schalter auf der Rückseite, Kabel und Pegel prüfen. Zeigt MODULAR **FEHLT**, hat die Firmware keine freien Synths (SETUP › INFO › AUDIO IN).
+
 ### SZENEN
-- Eine Szene speichert Klang, Mixer, Effekte (auch die Bus-Distortion), den VCO, Tempo, Swing und alle Sequencer-Patterns (auch die Drum-Spur mit ihrer SAMPLE-Zuordnung und die 303 mit ihrer Distortion). Encoder-, MIDI-, WLAN- und **Sampler-Einstellungen** gehören nicht dazu.
+- Eine Szene speichert Klang, Mixer, Effekte (auch die Bus-Distortion), den VCO, die AUDIO-IN-Einstellungen (nicht AN/AUS), Tempo, Swing und alle Sequencer-Patterns (auch die Drum-Spur mit ihrer SAMPLE-Zuordnung und die 303 mit ihrer Distortion). Encoder-, MIDI-, WLAN- und **Sampler-Einstellungen** gehören nicht dazu.
 - **MORPH A>B** blendet stufenlos zwischen zwei Szenen: Pegel, Pan, Filter, Effekte, Master, Tempo, 303-Klang (inkl. 303 DRIVE und DIST MIX), Grids X/Y. Patches wechseln nur beim LADEN.
 - Tipp: MORPH auf einen Zusatz-Encoder legen.
 
