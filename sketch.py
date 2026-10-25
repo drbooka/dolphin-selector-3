@@ -24,7 +24,7 @@ try:
     import random as _random
 except Exception:
     _random = None
-VERSION = "13.22"
+VERSION = "13.23"
 def clamp(v, lo, hi):
     if v < lo:
         return lo
@@ -7583,11 +7583,51 @@ def midi_setup_page():
     return ListPage("MIDI", [P_THRU, P_MTYPE, P_CLOCK, action("RST ALL MIDI", _rst_midi)])
 def encb_page():
     return ListPage("TASTER", [P_ENCB[sl] for sl in ENC_SLOT])
+I2C_TYPE_SHORT = {"adafruit_single": "SINGLE", "adafruit_quad": "QUAD",
+                  "adafruit_ano": "ANO", "m5stack": "M5 8ENC"}
+I2C_KNOWN_SHORT = {0x3C: "DISPLAY", 0x3D: "DISPLAY", 0x40: "AUDIO",
+                   0x41: "M5 8ENC", 0x48: "CV IN", 0x52: "JOYSTICK",
+                   0x58: "CV OUT"}
+def i2c_scan_rows():
+    rows = []
+    fn = getattr(amyboard, "scan_i2c", None)
+    res = None
+    if fn is not None:
+        try:
+            res = fn(verbose=False)
+        except Exception as e:
+            print("SCAN_I2C", e)
+    if res is None:
+        try:
+            res = [(a, None, "") for a in sorted(amyboard.get_i2c().scan())]
+        except Exception as e:
+            return [("I2C FEHLER", str(e)[:7])]
+    for addr, typ, desc in res:
+        name = I2C_TYPE_SHORT.get(typ) if typ else None
+        val = ""
+        if "product" in desc:
+            val = "P" + desc.split()[-1][:6]
+            name = name or "SEESAW?"
+        if not name:
+            name = I2C_KNOWN_SHORT.get(addr, "?")
+        rows.append(("%02X %s" % (addr, name), val))
+    if not rows:
+        rows.append(("KEINE GERAETE", ""))
+    return rows
+def i2c_scan_page():
+    toast("I2C", "SUCHE...", 3000)
+    render(force=True)
+    rows = i2c_scan_rows()
+    items = [infoline("SKETCH NUTZT", lambda: "+".join(ENC_DEVS)[:7] if ENC_DEVS else "-")]
+    items += [infoline(n, (lambda v=v: v)) for n, v in rows]
+    toast("I2C", "%d GERAETE" % len(rows), 600)
+    return ListPage("I2C-SCAN", items)
 def encoder_page():
     items = [infoline("GERAETE", lambda: "+".join(ENC_DEVS)[:9] if ENC_DEVS else "KEINE"),
              P_INV] + [P_ENCF[sl] for sl in ENC_SLOT]
     if ENC_SLOT:
         items.append(link("TASTER", encb_page))
+    items.append(link("I2C-SCAN", i2c_scan_page))
     return ListPage("ENCODER", items)
 def _wifi_new():
     if not sd_present():
@@ -7648,7 +7688,7 @@ def info_page():
         infoline("VCO-SYNTH", lambda: "%d" % VCO_SYNTH if VCO_SYNTH else "FEHLT"),
         infoline("AUDIO IN", lambda: "%d/%d" % AIN_SYNTHS if AIN_SYNTHS else "FEHLT"),
         infoline("DX7 SD (FM)", lambda: "JA" if fm_mod() else "NEIN"),
-        infoline("I2C", _i2c_count),
+        link("I2C", i2c_scan_page, info=_i2c_count),
         infoline("RAM FREI", _free_mem),
         infoline("LAST", lambda: "%d%%" % int(cpu_load * 100)),
         infoline("STIMMEN", lambda: "%d/%d" % (voices_total(), S["vbud"])),

@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – User Manual
 
-Version 13.22 · 23 Oct 2026 · AMYboard in a Eurorack case · English edition
+Version 13.23 · 25 Oct 2026 · AMYboard in a Eurorack case · English edition
 
 This manual describes the English edition of the sketch (`sketch_v13.19_en.py`), where all menus are in English. The German edition works the same way. Saved settings and scenes can be used by both.
 
@@ -169,7 +169,7 @@ HOME (start page)
     │
     └─ SETUP
         ├─ MIDI ─► MIDI THRU · MIDI OUT TYP (A/B) · CLOCK · RST ALL MIDI
-        ├─ ENCODER ─► DEVICES · DIRECTION · E1–E8 · Q1–Q8 (connected ones only) · BUTTONS
+        ├─ ENCODER ─► DEVICES · DIRECTION · E1–E8 · Q1–Q8 (connected ones only) · BUTTONS · I2C-SCAN
         ├─ MACROS ─► MACRO 1–4
         ├─ AUDIO (STEREO/MONO) · VOICES MAX · FAILSAFE
         ├─ DISPLAY ─► BRIGHTNESS · SAVER AFTER · UPDATE (FULL/BANDS)

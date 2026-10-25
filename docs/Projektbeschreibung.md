@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Projektbeschreibung
 
-Stand 23.10.2026 · Sketch-Version 13.22 (13.18 auf der Hardware bestätigt)
+Stand 25.10.2026 · Sketch-Version 13.23 (13.18 auf der Hardware bestätigt)
 
 ## Ziel
 
@@ -81,6 +81,7 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 | 13.20 | 21.10.2026 | Wavefolder für CV LFO und CV ENV (FOLD/DRIVE/MIX in AMY), FOLD MOD über CV IN1/IN2, Vorschau der gefalteten Welle |
 | 13.21 | 22.10.2026 | VCO: AMYboard als eigenständiger Oszillator (1 V/Okt an CV IN1/IN2 direkt in AMY, Sub, zweiter Oszillator, Wavefolder, FM/PWM/FOLD per CV, QUANT, Stimmanzeige) |
 | 13.22 | 23.10.2026 | AUDIO IN: Stereo-Eingang live durch Gain, Distortion, Filter und die Bus-Effekte (Synths 41/42 mit `AUDIO_IN0/1`), Pegelanzeige, Taster-Funktion, Makros, Statuszeile `IN` |
+| 13.23 | 25.10.2026 | I2C-SCAN unter SETUP › ENCODER und INFO › I2C: Adresse, erkannter Typ, Seesaw-Produktnummer (Fehlersuche Quad) |
 
 ## Offene Punkte (auf der Hardware zu prüfen)
 

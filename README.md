@@ -2,7 +2,7 @@
 
 A MicroPython sketch that turns the [AMYboard](https://amyboard.com) into a full Eurorack groovebox, fully playable on the module via a 128×128 OLED, rotary encoders and an optional joystick.
 
-**Version 13.22** · runs on current AMYboard firmware (AMY 1.2.16x or newer) · on-screen menus in **English or German**
+**Version 13.23** · runs on current AMYboard firmware (AMY 1.2.16x or newer) · on-screen menus in **English or German**
 
 ## Features
 
