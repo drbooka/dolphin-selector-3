@@ -24,7 +24,7 @@ try:
     import random as _random
 except Exception:
     _random = None
-VERSION = "13.23"
+VERSION = "13.24"
 def clamp(v, lo, hi):
     if v < lo:
         return lo
@@ -259,6 +259,25 @@ for _t, _a, _s in _blocks:
         _nq += 1
     _bb += BTN_PER_DEV.get(_t, ENC_PER_DEV.get(_t, 0))
 del _nq, _nm, _bb
+LED_PER_DEV = {"m5stack": 8, "adafruit_quad": 4, "adafruit_single": 1}
+ENC_LED = []
+ENC_DEVNO = []
+_lo = 0
+_nq = 0
+_nm = 0
+for _t, _a, _s in _blocks:
+    if _t == "m5stack" and _nm == 0:
+        _nm = 1
+        for _i in range(8):
+            ENC_LED.append(_lo + _i)
+            ENC_DEVNO.append(0)
+    elif _t == "adafruit_quad" and _nq < 2:
+        _nq += 1
+        for _i in range(4):
+            ENC_LED.append(_lo + _i)
+            ENC_DEVNO.append(_nq)
+    _lo += LED_PER_DEV.get(_t, 0)
+del _lo, _nq, _nm
 def enc_page_index(slot):
     return slot if slot < 8 else (slot - 8) % 4
 try:
@@ -663,7 +682,9 @@ USER_BASE = 1024
 ENCF_DEFAULT = ("SCREEN", "SCREEN", "SCREEN", "SCREEN",
                 "master", "lvl", "rvL", "ecL",
                 "pk1", "pk2", "pk3", "pk4",
-                "AUS", "AUS", "AUS", "AUS")
+                "pk5", "pk6", "pk7", "pk8")
+def new_encx():
+    return {"pl": 0, "ld": 0, "led": 0}
 def default_state():
     s = {
         "v": 12, "n": 0,
@@ -699,6 +720,7 @@ def default_state():
         "sb": new_sampler(), "notlauf": 1, "transport": 0,
         "m5": 0, "fail": 4, "vbud": 24, "dim": 5, "bright": 255,
         "syx": [None] * 17, "encb": list(ENCB_DEFAULT),
+        "encx": [new_encx() for _ in range(16)], "eset": 0, "esets": [None, None, None],
         "fav": [], "rec": [], "mA": 0, "mB": 1, "mx": 0.0, "cct": 0,
         "uit": 1, "dfast": 1,
         "sqm": 1, "vlf": 250,
@@ -892,6 +914,22 @@ def sanitize():
     while len(S["encb"]) < ENC_SLOTS:
         S["encb"].append(ENCB_DEFAULT[len(S["encb"])])
     S["encb"] = [b if b in ENCB_KEYS else "AUS" for b in S["encb"][:ENC_SLOTS]]
+    S["encf"] = [f if f in ENC_KEYS else "AUS" for f in S["encf"]]
+    S["encx"] = _sanitize_encx(S["encx"])
+    S["eset"] = clamp_int(S["eset"], 0, 2)
+    if not isinstance(S["esets"], list) or len(S["esets"]) != 3:
+        S["esets"] = [None, None, None]
+    for i in range(3):
+        e = S["esets"][i]
+        try:
+            S["esets"][i] = {
+                "f": [f if f in ENC_KEYS else "AUS" for f in e["f"]][:ENC_SLOTS],
+                "b": [b if b in ENCB_KEYS else "AUS" for b in e["b"]][:ENC_SLOTS],
+                "x": _sanitize_encx(e["x"])}
+            if len(S["esets"][i]["f"]) != ENC_SLOTS or len(S["esets"][i]["b"]) != ENC_SLOTS:
+                S["esets"][i] = None
+        except Exception:
+            S["esets"][i] = None
     S["uit"] = 1 if S["uit"] else 0
     S["dfast"] = 1 if S["dfast"] else 0
     S["sqm"] = 1 if S["sqm"] else 0
@@ -906,6 +944,17 @@ def sanitize():
     _sanitize_vco()
     _sanitize_ain()
     _sanitize_sampler()
+def _sanitize_encx(lst):
+    out = []
+    for i in range(ENC_SLOTS):
+        try:
+            x = lst[i]
+            out.append({"pl": clamp_int(x["pl"], 0, len(PL_NAMES) - 1),
+                        "ld": 1 if x["ld"] else 0,
+                        "led": clamp_int(x["led"], 0, len(LED_NAMES) - 1)})
+        except Exception:
+            out.append(new_encx())
+    return out
 def _sanitize_ain():
     a = S["ain"]
     a["on"] = 1 if a["on"] else 0
@@ -1168,6 +1217,10 @@ def save_state(force=False):
     global _last_saved, _save_due, _save_first, _save_err, sd_switch_err, sd_status
     _save_due = None
     _save_first = None
+    try:
+        eset_snapshot()
+    except Exception:
+        pass
     try:
         txt = json.dumps(S)
     except Exception as e:
@@ -5670,55 +5723,173 @@ ASSIGN_KEYS = ["master", "lvl", "pan", "cut", "res", "att", "dec", "sus", "rel",
                "vfin", "vpw", "vsub", "vo2", "vdet", "vdrv", "vmd", "vlvl",
                "igain", "ilvl", "ipan", "icut", "ires", "idrv"]
 ASSIGN_NAMES = [REG[k].label for k in ASSIGN_KEYS]
-PATCH_ENC_CHANNELS = (1, 2, 3, 4)
+PATCH_ENC_CHANNELS = tuple(range(1, 17))
 MELODIC_PATCHES = [p for p in ALL_PATCHES if not is_drum(p)]
+PL_NAMES = ["ALL"] + [c[0] for c in CAT_DEFS] + ["FAVOURITES", "DRUM KITS"]
+PL_FAV = len(CAT_DEFS) + 1
+PL_DRUM = len(CAT_DEFS) + 2
+LD_NAMES = ["INSTANT", "ON PRESS"]
+_enc_pend = {}
+def patch_list(ch, pl):
+    p = S["pat"][ch]
+    if ch == DRUM_CHANNEL or is_drum(p) or pl == PL_DRUM:
+        return DRUM_KITS
+    if pl == 0:
+        return MELODIC_PATCHES
+    if pl == PL_FAV:
+        return [x for x in S["fav"] if not is_drum(x)]
+    return PATCH_CATS[pl - 1]
+def enc_patch_ch(f):
+    return S["cur"] if f == "pkc" else int(f[2:])
 class PatchEnc:
     own_toast = True
     vis = None
     def __init__(self, ch):
         self.ch = ch
-        self.label = "PATCH K%d" % ch
-        self.short = "PK%d" % ch
-    def _list(self):
-        p = S["pat"][self.ch]
-        if self.ch == DRUM_CHANNEL or is_drum(p):
-            return DRUM_KITS
-        return MELODIC_PATCHES
+        self.label = ("PATCH K%d" % ch) if ch else "PATCH CUR"
+        self.short = ("PK%d" % ch) if ch else "PKA"
     def nudge(self, d, acc=1):
-        ch = self.ch
+        self.nudge_slot(None, d, acc)
+    def nudge_slot(self, sl, d, acc=1):
+        ch = self.ch or S["cur"]
         if chrom_owns(ch):
             toast("K%d SAMPLER" % ch, "PATCH IN SAMPLER", 900)
             return
-        lst = self._list()
-        p = S["pat"][ch]
+        x = S["encx"][sl] if sl is not None else new_encx()
+        lst = patch_list(ch, x["pl"])
+        if not lst:
+            toast("K%d %s" % (ch, PL_NAMES[x["pl"]][:9]), "LIST EMPTY", 900)
+            return
+        pend = _enc_pend.get(sl)
+        p = pend[1] if (pend and pend[0] == ch) else S["pat"][ch]
         step = d * (4 if acc > 1 else 1)
         if p in lst:
             i = (lst.index(p) + step) % len(lst)
         else:
             i = 0 if d > 0 else len(lst) - 1
-        set_patch(ch, lst[i])
+        np = lst[i]
+        if x["ld"] and sl is not None:
+            _enc_pend[sl] = (ch, np)
+            toast("K%d > %03d PRESS" % (ch, np), patch_name(np)[:14], 2500)
+            return
+        set_patch(ch, np)
         request_save()
         mark_dirty()
-        toast("K%d %s %03d" % (ch, FAMILY_SHORT[family(lst[i])], lst[i]),
-              patch_name(lst[i])[:14], 900)
+        toast("K%d %s %03d" % (ch, FAMILY_SHORT[family(np)], np),
+              patch_name(np)[:14], 900)
     def text(self):
-        return patch_name(S["pat"][self.ch])[:14]
-PATCH_ENC_KEYS = []
+        return patch_name(S["pat"][self.ch or S["cur"]])[:14]
+def enc_pend_load(sl):
+    pend = _enc_pend.pop(sl, None)
+    if pend is None:
+        return False
+    ch, p = pend
+    set_patch(ch, p)
+    commit_patch(ch)
+    toast("K%d LOADED" % ch, patch_name(p)[:14], 900)
+    return True
+class ChanEnc:
+    own_toast = True
+    vis = None
+    label = "CHANNEL"
+    short = "CHN"
+    def nudge(self, d, acc=1):
+        on_hold_turn(1 if d > 0 else -1)
+    def text(self):
+        return "K%d" % S["cur"]
+PATCH_ENC_KEYS = ["pkc"]
+REG["pkc"] = PatchEnc(0)
 for _c in PATCH_ENC_CHANNELS:
     REG["pk%d" % _c] = PatchEnc(_c)
     PATCH_ENC_KEYS.append("pk%d" % _c)
-ENC_KEYS = ["AUS", "SCREEN"] + PATCH_ENC_KEYS + ASSIGN_KEYS
-ENC_NAMES = (["OFF", "PAGE"] + [REG[k].label for k in PATCH_ENC_KEYS]
+REG["chan"] = ChanEnc()
+ENC_KEYS = ["AUS", "SCREEN", "chan"] + PATCH_ENC_KEYS + ASSIGN_KEYS
+ENC_NAMES = (["OFF", "PAGE", "CHANNEL"] + [REG[k].label for k in PATCH_ENC_KEYS]
              + ASSIGN_NAMES)
+ENC_GROUPS = (
+    ("MIXER", 4, ("master", "lvl", "pan", "porta")),
+    ("SOUND", 3, ("cut", "res", "att", "dec", "sus", "rel", "lfr", "lfd")),
+    ("EFFECTS", 5, ("rvL", "rvV", "rvD", "rvX", "chL", "chR", "chD", "chM",
+                    "ecL", "ecT", "ecF", "ecC", "eqL", "eqM", "eqH", "dsD")),
+    ("SEQ+SCENE", 4, ("tempo", "swing", "morph")),
+    ("303", 2, ("acut", "ares", "aenv", "adec", "aacc", "alvl", "adrv")),
+    ("DRUMS", 3, ("gx", "gy")),
+    ("MODULAR", 6, ("lfoR", "lfoD", "lfoF", "envF", "vfin", "vpw", "vsub", "vo2",
+                    "vdet", "vdrv", "vmd", "vlvl")),
+    ("AUDIO IN", 8, ("igain", "ilvl", "ipan", "icut", "ires", "idrv")),
+)
+ENC_GROUP_NAMES = [g[0] for g in ENC_GROUPS]
+ENC_GROUP_OF = {}
+for _gi, _g in enumerate(ENC_GROUPS):
+    for _k in _g[2]:
+        ENC_GROUP_OF[_k] = _gi
+for _k in ASSIGN_KEYS:
+    if _k not in ENC_GROUP_OF:
+        ENC_GROUP_OF[_k] = 0
+FUNC_NAMES = ["OFF", "PAGE", "PATCH", "CHANNEL", "PARAMETER"]
+LED_NAMES = ["AUTO", "OFF", "RED", "ORANGE", "YELLOW", "GREEN", "CYAN", "BLUE",
+             "PURPLE", "WHITE"]
+LED_RGB = (None, (0, 0, 0), (40, 0, 0), (40, 12, 0), (32, 26, 0), (0, 36, 0),
+           (0, 26, 26), (0, 0, 40), (24, 0, 34), (22, 22, 22))
+def enc_func(f):
+    if f == "AUS":
+        return 0
+    if f == "SCREEN":
+        return 1
+    if f.startswith("pk"):
+        return 2
+    if f == "chan":
+        return 3
+    return 4
+def enc_group_keys(gi):
+    return [k for k in ASSIGN_KEYS if ENC_GROUP_OF.get(k) == gi]
+def enc_func_text(sl):
+    f = S["encf"][sl]
+    fn = enc_func(f)
+    if fn == 2:
+        return ("PATCH CUR" if f == "pkc" else "PATCH K%s" % f[2:]) + (
+            "*" if sl in _enc_pend else "")
+    if fn == 4:
+        prm = REG.get(f)
+        return prm.label[:12] if prm is not None else "?"
+    return FUNC_NAMES[fn]
+def enc_led_index(sl):
+    x = S["encx"][sl]
+    if x["led"]:
+        return x["led"]
+    f = S["encf"][sl]
+    fn = enc_func(f)
+    if fn == 4:
+        return ENC_GROUPS[ENC_GROUP_OF.get(f, 0)][1]
+    return (1, 9, 7, 8)[fn]
+ESET_NAMES = ["A", "B", "C"]
+def eset_snapshot():
+    S["esets"][S["eset"]] = {"f": list(S["encf"]), "b": list(S["encb"]),
+                             "x": deep_copy(S["encx"])}
+def eset_switch(n):
+    eset_snapshot()
+    S["eset"] = n
+    sn = S["esets"][n]
+    if sn:
+        S["encf"] = list(sn["f"])
+        S["encb"] = list(sn["b"])
+        S["encx"] = deep_copy(sn["x"])
+    _enc_pend.clear()
+    _encf_changed()
+    request_save()
+    toast("ENCODER SET", ESET_NAMES[n], 900)
+def eset_next():
+    eset_switch((S["eset"] + 1) % 3)
 def _encf_changed():
     resync_param_encoders()
+    update_leds()
 P_ENCF = [P(ENC_SLOT_NAMES[i], rL("encf", i), kind=ENUM, opts=ENC_NAMES, vals=ENC_KEYS,
             apply=_encf_changed) for i in range(ENC_SLOTS)]
 ENCB_KEYS = ["AUS", "KONTEXT", "START", "TAP", "PANIC", "MUTE1", "MUTE2", "MUTE3",
-             "MUTE4", "M303", "MDRM", "AIN"]
+             "MUTE4", "M303", "MDRM", "AIN", "ESET"]
 ENCB_NAMES = ["OFF", "CONTEXT", "START/STOP", "TAP TEMPO", "PANIC (LONG)", "MUTE K1",
               "MUTE K2", "MUTE K3", "MUTE K4", "MUTE 303", "MUTE DRUMS",
-              "AUDIO IN"]
+              "AUDIO IN", "ENC SET >"]
 P_ENCB = [P(ENC_SLOT_NAMES[i] + " BUTTON", rL("encb", i), kind=ENUM, opts=ENCB_NAMES,
             vals=ENCB_KEYS) for i in range(ENC_SLOTS)]
 P_MACRO = [P("MACRO %d" % (i + 1), rL("macro", i), kind=ENUM, opts=ASSIGN_NAMES,
@@ -7622,13 +7793,120 @@ def i2c_scan_page():
     items += [infoline(n, (lambda v=v: v)) for n, v in rows]
     toast("I2C", "%d DEVICES" % len(rows), 600)
     return ListPage("I2C-SCAN", items)
+ENC_UI = [0]
+ENC_DEV_TITLES = ("M5STACK", "QUAD 1", "QUAD 2")
+def _eu():
+    return ENC_UI[0]
+def _enc_set_f(f):
+    sl = _eu()
+    if S["encf"][sl] != f:
+        _enc_pend.pop(sl, None)
+        S["encf"][sl] = f
+        _encf_changed()
+def _func_set(fn):
+    sl = _eu()
+    f = S["encf"][sl]
+    if enc_func(f) == fn:
+        return
+    if fn == 2:
+        f = "pkc"
+    elif fn == 4:
+        f = enc_group_keys(0)[0]
+    else:
+        f = ("AUS", "SCREEN", None, "chan")[fn]
+    _enc_set_f(f)
+def _grp_set(gi):
+    _enc_set_f(enc_group_keys(gi)[0])
+def _ld_changed():
+    sl = _eu()
+    if S["encx"][sl]["ld"] and S["encb"][sl] != "KONTEXT":
+        S["encb"][sl] = "KONTEXT"
+        toast("BUTTON", "NOW CONTEXT", 1200)
+    if not S["encx"][sl]["ld"]:
+        _enc_pend.pop(sl, None)
+def _is_fn(fn):
+    return lambda: enc_func(S["encf"][_eu()]) == fn
+EP_FUNC = P("FUNCTION", kind=ENUM, opts=FUNC_NAMES, vals=list(range(5)),
+            getter=lambda: enc_func(S["encf"][_eu()]), setter=_func_set)
+EP_CH = P("CHANNEL", kind=ENUM, opts=["CURRENT"] + ["K%d" % c for c in PATCH_ENC_CHANNELS],
+          vals=PATCH_ENC_KEYS, getter=lambda: S["encf"][_eu()], setter=_enc_set_f,
+          vis=_is_fn(2))
+EP_PL = P("LIST", lambda: (S["encx"][_eu()], "pl"), kind=ENUM, opts=PL_NAMES,
+          apply=lambda: _enc_pend.pop(_eu(), None), vis=_is_fn(2))
+EP_LD = P("LOAD", lambda: (S["encx"][_eu()], "ld"), kind=ENUM, opts=LD_NAMES,
+          apply=_ld_changed, vis=_is_fn(2))
+EP_GRP = P("GROUP", kind=ENUM, opts=ENC_GROUP_NAMES, vals=list(range(len(ENC_GROUPS))),
+           getter=lambda: ENC_GROUP_OF.get(S["encf"][_eu()], 0), setter=_grp_set,
+           vis=_is_fn(4))
+EP_PAR = P("VALUE", kind=ENUM,
+           opts=lambda: [REG[k].label for k in
+                         enc_group_keys(ENC_GROUP_OF.get(S["encf"][_eu()], 0))],
+           vals=lambda: enc_group_keys(ENC_GROUP_OF.get(S["encf"][_eu()], 0)),
+           getter=lambda: S["encf"][_eu()], setter=_enc_set_f, vis=_is_fn(4))
+EP_BTN = P("BUTTON", lambda: (S["encb"], _eu()), kind=ENUM, opts=ENCB_NAMES,
+           vals=ENCB_KEYS)
+EP_LED = P("LED", lambda: (S["encx"][_eu()], "led"), kind=ENUM, opts=LED_NAMES,
+           apply=lambda: update_leds(), vis=lambda: bool(ENC_LED))
+def _enc_now():
+    f = S["encf"][_eu()]
+    prm = REG.get(f)
+    return prm.text()[:9] if prm is not None and hasattr(prm, "text") else "-"
+def enc_items():
+    return [EP_FUNC, EP_CH, EP_PL, EP_LD, EP_GRP, EP_PAR,
+            infoline("NOW", _enc_now, vis=lambda: enc_func(S["encf"][_eu()]) >= 2),
+            EP_BTN, EP_LED]
+def _slot_dev(sl):
+    try:
+        return ENC_DEV_TITLES[ENC_DEVNO[ENC_SLOT.index(sl)]]
+    except Exception:
+        return ""
+class EncEditPage(ListPage):
+    def __init__(self, sl):
+        ENC_UI[0] = sl
+        ListPage.__init__(self, lambda: ENC_SLOT_NAMES[_eu()], enc_items,
+                          right=lambda: _slot_dev(_eu()))
+    def enc_jump(self, sl):
+        if sl != ENC_UI[0]:
+            self.edit = False
+            ENC_UI[0] = sl
+            toast("ENCODER", ENC_SLOT_NAMES[sl], 500)
+    def leave(self):
+        request_save()
+def _eset_info():
+    return ESET_NAMES[S["eset"]]
+P_ESET = P("SET", kind=ENUM, opts=ESET_NAMES, vals=[0, 1, 2], confirm=True,
+           getter=lambda: S["eset"], setter=eset_switch)
+class EncOverviewPage(ListPage):
+    def __init__(self):
+        items = [infoline("DEVICES", _devs_text), P_ESET, P_INV]
+        self._row = {}
+        last = None
+        for i in range(len(ENC_SLOT)):
+            sl = ENC_SLOT[i]
+            dv = ENC_DEVNO[i] if i < len(ENC_DEVNO) else 0
+            if dv != last:
+                last = dv
+                items.append(infoline("= " + ENC_DEV_TITLES[dv] + " =", lambda: ""))
+            self._row[sl] = len(items)
+            items.append(link(ENC_SLOT_NAMES[sl], (lambda s=sl: EncEditPage(s)),
+                              info=(lambda s=sl: enc_func_text(s))))
+        if not ENC_SLOT:
+            items.append(infoline("NO EXTRA ENC", lambda: ""))
+        items.append(link("I2C-SCAN", i2c_scan_page))
+        ListPage.__init__(self, "ENCODER", items)
+    def enc_jump(self, sl):
+        if sl in self._row and not self.edit:
+            self.cur = self._row[sl]
+def _devs_text():
+    if not ENC_DEVS:
+        return "NONE"
+    nq = ENC_DEVS.count("QUAD")
+    t = "M5" if "M5" in ENC_DEVS else ""
+    if nq:
+        t += ("+" if t else "") + ("%dQUAD" % nq if nq > 1 else "QUAD")
+    return t
 def encoder_page():
-    items = [infoline("DEVICES", lambda: "+".join(ENC_DEVS)[:9] if ENC_DEVS else "NONE"),
-             P_INV] + [P_ENCF[sl] for sl in ENC_SLOT]
-    if ENC_SLOT:
-        items.append(link("BUTTONS", encb_page))
-    items.append(link("I2C-SCAN", i2c_scan_page))
-    return ListPage("ENCODER", items)
+    return EncOverviewPage()
 def _wifi_new():
     if not sd_present():
         toast("WLAN", "SD CARD MISSING")
@@ -8025,10 +8303,11 @@ def read_param_encoders():
         _enc_page_seen = p
         resync_param_encoders()
         return
+    jump = getattr(p, "enc_jump", None)
     for i in range(len(PARAM_ENCODERS)):
         sl = ENC_SLOT[i]
         f = S["encf"][sl]
-        if f == "AUS":
+        if f == "AUS" and jump is None:
             continue
         try:
             pos = enc.read(PARAM_ENCODERS[i])
@@ -8042,6 +8321,10 @@ def read_param_encoders():
             d = -d
         if wake():
             continue
+        if jump is not None:
+            jump(sl)
+            mark_dirty()
+            continue
         if f == "SCREEN":
             prm = p.enc_param(enc_page_index(sl))
             quiet = True
@@ -8053,7 +8336,10 @@ def read_param_encoders():
         vis = getattr(prm, "vis", None)
         if vis is not None and not vis():
             continue
-        prm.nudge(d, 2 if abs(d) >= 3 else 1)
+        if hasattr(prm, "nudge_slot"):
+            prm.nudge_slot(sl, d, 2 if abs(d) >= 3 else 1)
+        else:
+            prm.nudge(d, 2 if abs(d) >= 3 else 1)
         mark_dirty()
         if not quiet:
             toast(prm.label[:14], prm.text(), 700)
@@ -8072,12 +8358,13 @@ def enc_button_action(sl, long):
             fn = getattr(top(), "enc_press", None)
             if fn is not None:
                 fn(enc_page_index(sl), long)
-        elif f.startswith("pk"):
-            ch = int(f[2:])
+        elif f.startswith("pk") or f == "chan":
+            ch = S["cur"] if f == "chan" else enc_patch_ch(f)
             if long:
+                _enc_pend.pop(sl, None)
                 S["cur"] = ch
                 push(PatchBrowser())
-            else:
+            elif not enc_pend_load(sl):
                 _mute_toggle(ch)
         elif f != "AUS":
             prm = REG.get(f)
@@ -8095,6 +8382,8 @@ def enc_button_action(sl, long):
         _mute_toggle(int(a[4:]))
     elif a == "AIN":
         ain_toggle()
+    elif a == "ESET":
+        eset_next()
     elif a in ("M303", "MDRM"):
         i = ACID if a == "M303" else DRUM
         t = trk_cfg(i)
@@ -8127,18 +8416,24 @@ def read_param_buttons():
             _pb_t0[i] = None
             if not _pb_long[i] and not wake():
                 enc_button_action(sl, False)
+_led_sent = {}
 def update_leds():
     if enc is None:
         return
     try:
         if not enc.leds:
             return
-        cols = ((0, 32, 0), (32, 0, 0), (0, 0, 32), (32, 16, 0),
-                (24, 24, 24), (0, 24, 24), (24, 0, 24), (24, 24, 0))
-        for i in range(min(enc.leds, 8)):
-            enc.led(i, *cols[i])
-    except Exception:
-        pass
+        for i in range(len(ENC_SLOT)):
+            li = ENC_LED[i] if i < len(ENC_LED) else None
+            if li is None or li >= enc.leds:
+                continue
+            rgb = LED_RGB[enc_led_index(ENC_SLOT[i])]
+            if _led_sent.get(li) == rgb:
+                continue
+            enc.led(li, *rgb)
+            _led_sent[li] = rgb
+    except Exception as e:
+        print("LED", e)
 FRAME_MS = 45
 LIVE_MS = 240
 _last_frame = 0

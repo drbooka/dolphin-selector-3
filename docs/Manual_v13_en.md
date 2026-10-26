@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – User Manual
 
-Version 13.23 · 25 Oct 2026 · AMYboard in a Eurorack case · English edition
+Version 13.24 · 26 Oct 2026 · AMYboard in a Eurorack case · English edition
 
 This manual describes the English edition of the sketch (`sketch_v13.19_en.py`), where all menus are in English. The German edition works the same way. Saved settings and scenes can be used by both.
 
@@ -27,26 +27,45 @@ The M5Stack joystick (optional) works like the encoder: left/right is turning, t
 - **Switches** (ON/OFF) toggle with a short press.
 
 ### Extra encoders E1–E8 and Q1–Q8
-Supported are an M5Stack 8-Encoder (**E1–E8**) and up to two Adafruit Quad #5752 (**Q1–Q4**, **Q5–Q8**), also at the same time. The Single #5880 stays the navigation encoder. Every extra encoder can be assigned freely (SETUP › ENCODER):
-- **PAGE**: controls the first values of the page that is currently open (E1–E8 = values 1–8, Q1–Q4 and Q5–Q8 = values 1–4). Examples: on HOME the 4 macros, in the MIXER level/pan/porta/reverb, in the SEQUENCER tempo/swing, in the 303 editor note/octave/accent/slide, on the drum page 8 steps of the selected instrument, in GRIDS LIVE X, Y and the density of instruments 1–6, in the **waveform editor START, END, LOOP A, LOOP B**.
-- **PATCH K1–K4**: turning changes the patch of channel 1–4 while playing. The patch is loaded after 120 ms of rest, and the sequencer keeps running. The overlay shows e.g. `K1 JUNO 012` / `Clock Chimes`. Turning fast jumps in steps of 4. Normal channels scroll through Juno, DX7, Piano and AMYB; a channel with a drum kit only scrolls through the drum kits. If the channel is the sampler's CHROM. channel, `K1 SAMPLER` appears.
-- **Fixed parameter**: e.g. master, cutoff, reverb, 303 DRIVE, BUS DRIVE. The value is shown briefly while turning.
-- **OFF**: not read (saves I2C time).
+Supported are an M5Stack 8-Encoder (**E1–E8**) and up to two Adafruit Quad #5752 (**Q1–Q4**, **Q5–Q8**), also at the same time. The Single #5880 stays the navigation encoder. For a second quad, close the solder jumper **A0** on its back (address 0x4A instead of 0x49).
 
-**Buttons** (SETUP › ENCODER › BUTTONS): every extra encoder has a push button. A short press triggers on release, a long press (> 0.45 s) as soon as the time is reached.
+**SETUP › ENCODER** shows DEVICES at the top (e.g. `M5+2QUAD`), the active **SET** and the DIRECTION. Below it all detected extra encoders are listed by device (`= M5STACK =`, `= QUAD 1 =`, `= QUAD 2 =`) with their function. **Turn an extra encoder and the cursor jumps to its row.** A press opens that encoder's page. There too, turning a different extra encoder switches straight to its settings.
+
+**Encoder page** (title e.g. `E3`, device on the right). After the FUNCTION only the matching rows appear:
+
+| FUNCTION | Further rows | Effect |
+|---|---|---|
+| **OFF** | – | not read (saves I2C time) |
+| **PAGE** | – | controls the first values of the open page (E1–E8 = values 1–8, Q1–Q4 and Q5–Q8 = values 1–4): on HOME the 4 macros, in the MIXER level/pan/porta/reverb, in the SEQUENCER tempo/swing, in the 303 editor note/octave/accent/slide, on the drum page 8 steps, in GRIDS LIVE X/Y/density, in the waveform editor START/END/LOOP A/LOOP B |
+| **PATCH** | **CHANNEL** CURRENT or K1–K16 · **LIST** ALL, a category (BASS, LEAD, PAD …), FAVOURITES or DRUM KITS · **LOAD** INSTANT or ON PRESS | turning changes the channel's patch while playing. CURRENT follows the selected channel. A channel with a drum kit always scrolls through the drum kits. |
+| **CHANNEL** | – | turning selects the current MIDI channel (like hold-and-turn on the Single) |
+| **PARAMETER** | **GROUP** MIXER, SOUND, EFFECTS, SEQ+SCENE, 303, DRUMS, MODULAR, AUDIO IN · **VALUE** | fixed parameter, e.g. master, cutoff, reverb, 303 DRIVE, IN GAIN. The value is shown briefly while turning. |
+
+Every encoder page also has **NOW** (current patch or value), **BUTTON** (see below) and **LED**.
+
+- **LOAD INSTANT** (default): the patch is loaded after 120 ms of rest, and the sequencer keeps running. The overlay shows e.g. `K1 JUNO 012` / `Clock Chimes`. Turning fast jumps in steps of 4.
+- **LOAD ON PRESS** (for live use): turning only shows `K3 > 045 PRESS` and the name; the sound stays. The encoder's button loads the patch. The overview then shows a `*` after the assignment. The BUTTON is set to CONTEXT automatically.
+- If the channel is the sampler's CHROM. channel, `K1 SAMPLER` appears. If a list is empty (e.g. no favourites yet), `LIST EMPTY` appears.
+
+**LED** (M5Stack and quads): **AUTO** shows the function as a colour – PAGE white, PATCH blue, CHANNEL purple, OFF dark, PARAMETER by group (MIXER and SEQ+SCENE yellow, SOUND and DRUMS orange, EFFECTS green, 303 red, MODULAR cyan, AUDIO IN purple). Or a fixed colour: OFF, RED, ORANGE, YELLOW, GREEN, CYAN, BLUE, PURPLE, WHITE.
+
+**Encoder sets A/B/C:** three complete assignments (function, options, button, LED), e.g. one for live and one for sound design. Switch under SETUP › ENCODER › **SET** (turn, press activates) or with the button function **ENC SET >** (A → B → C → A). A new set starts as a copy of the previous one.
+
+**Buttons** (on the encoder page): every extra encoder has a push button. A short press triggers on release, a long press (> 0.45 s) as soon as the time is reached.
 
 | Assignment | Short | Long |
 |---|---|---|
-| **CONTEXT** (default) | PATCH Kn: mute/unmute channel n · fixed parameter: big ring for fine adjustment · PAGE on the drum page: set the step under the encoder (OFF → 100 % → 67 % → 40 %) | PATCH Kn: patch browser for channel n |
+| **CONTEXT** (default) | PATCH: load the pending patch (ON PRESS), otherwise mute/unmute the channel · CHANNEL: mute/unmute the current channel · fixed parameter: big ring for fine adjustment · PAGE on the drum page: set the step under the encoder | PATCH/CHANNEL: patch browser for the channel |
 | START/STOP | Start/stop the sequencer | – |
 | TAP TEMPO | Tap the tempo | – |
 | PANIC (LONG) | – | All notes off |
 | MUTE K1–K4 | Mute/unmute the channel | – |
 | MUTE 303 / MUTE DRUMS | Mute/unmute the track | – |
 | AUDIO IN | Input on/off (MODULAR › AUDIO IN) | – |
+| ENC SET > | next encoder set | – |
 | OFF | Not read | |
 
-Default: E1–E4 PAGE, E5 master, E6 level, E7 reverb, E8 echo, **Q1–Q4 PATCH K1–K4**, Q5–Q8 OFF. The assignment stays saved even if a device is not connected for a while.
+Default: E1–E4 PAGE, E5 master, E6 level, E7 reverb, E8 echo, **Q1–Q8 PATCH K1–K8**. The assignment stays saved even if a device is not connected for a while. Older states keep their assignment (OFF stays OFF).
 
 ### Status line (top)
 `C1` = current MIDI channel · patch family (JUNO/DX7/DRUM …, `SMP` = sampler channel) · `IN` = AUDIO IN running · tempo · ▶ running / ■ stopped. The thin line below shows the CPU load (bright from 85 %).
@@ -169,7 +188,8 @@ HOME (start page)
     │
     └─ SETUP
         ├─ MIDI ─► MIDI THRU · MIDI OUT TYP (A/B) · CLOCK · RST ALL MIDI
-        ├─ ENCODER ─► DEVICES · DIRECTION · E1–E8 · Q1–Q8 (connected ones only) · BUTTONS · I2C-SCAN
+        ├─ ENCODER ─► DEVICES · SET (A/B/C) · DIRECTION · E1–E8 · Q1–Q8 (connected ones only) · I2C-SCAN
+        │   └─ Ex/Qx ─► FUNCTION · CHANNEL · LIST · LOAD · GROUP · VALUE · NOW · BUTTON · LED
         ├─ MACROS ─► MACRO 1–4
         ├─ AUDIO (STEREO/MONO) · VOICES MAX · FAILSAFE
         ├─ DISPLAY ─► BRIGHTNESS · SAVER AFTER · UPDATE (FULL/BANDS)
@@ -444,7 +464,7 @@ The sampler has **8 slots** (S1–S8). A slot points to a WAV file on the SD car
 
 ### SETUP
 - **RST ALL MIDI** removes the patches from all channels.
-- **ENCODER:** **DEVICES** shows the detected extra devices (e.g. `M5+QUAD`). Below that DIRECTION and the assignment of all connected encoders E1–E8 and Q1–Q8 (see section 1).
+- **ENCODER:** **DEVICES** shows the detected extra devices (e.g. `M5+2QUAD`). Below that SET, DIRECTION and the overview of all connected encoders E1–E8 and Q1–Q8 (see section 1).
 - **FAILSAFE** limits the CPU load. Under overload, voices are switched off instead of crackling.
 - **DISPLAY:** **BRIGHTNESS** (contrast), **SAVER AFTER** (dims after 1–30 min without input; the first input only wakes it up), **UPDATE** BANDS = only send changed parts of the image (keeps the timing steady), FULL = always the whole image (if the image looks wrong).
 - **CLOCK:**

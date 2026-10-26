@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Bedienungsanleitung
 
-Version 13.23 · Stand 25.10.2026 · AMYboard im Eurorack-Case
+Version 13.24 · Stand 26.10.2026 · AMYboard im Eurorack-Case
 
 ---
 
@@ -25,26 +25,45 @@ Der M5Stack-Joystick (optional) funktioniert wie der Encoder: links/rechts ist D
 - **Schalter** (AN/AUS) wechseln mit einem kurzen Druck.
 
 ### Zusatz-Encoder E1–E8 und Q1–Q8
-Unterstützt werden ein M5Stack 8-Encoder (**E1–E8**) und bis zu zwei Adafruit Quad #5752 (**Q1–Q4**, **Q5–Q8**), auch gleichzeitig. Der Single #5880 bleibt die Navigation. Jeder Zusatz-Encoder ist frei belegbar (SETUP › ENCODER):
-- **SEITE**: steuert die ersten Werte der gerade offenen Seite (E1–E8 = 1.–8. Wert, Q1–Q4 und Q5–Q8 = 1.–4. Wert). Beispiele: auf SPIELEN die 4 Makros, im MIXER Level/Pan/Porta/Reverb, im SEQUENCER Tempo/Swing, im 303-Editor Note/Oktave/Accent/Slide, auf der Drum-Seite 8 Steps des gewählten Instruments, bei GRIDS LIVE X, Y und die Dichte von Instrument 1–6, im **Wellenform-Editor START, ENDE, LOOP A, LOOP B**.
-- **PATCH K1–K4**: Drehen wechselt den Patch von Kanal 1–4 im laufenden Betrieb. Der Patch wird nach 120 ms Ruhe geladen, der Sequencer läuft weiter. Die Einblendung zeigt z. B. `K1 JUNO 012` / `Clock Chimes`. Schnelles Drehen springt in 4er-Schritten. Normale Kanäle blättern durch Juno, DX7, Piano und AMYB, ein Kanal mit Drumkit nur durch die Drumkits. Ist der Kanal der CHROM.-Kanal des Samplers, erscheint `K1 SAMPLER`.
-- **Fester Parameter**: z. B. Master, Cutoff, Reverb, 303 DRIVE, BUS DRIVE. Beim Drehen erscheint kurz der Wert.
-- **AUS**: wird nicht abgefragt (spart I2C-Zeit).
+Unterstützt werden ein M5Stack 8-Encoder (**E1–E8**) und bis zu zwei Adafruit Quad #5752 (**Q1–Q4**, **Q5–Q8**), auch gleichzeitig. Der Single #5880 bleibt die Navigation. Für einen zweiten Quad auf der Rückseite die Lötbrücke **A0** schließen (Adresse 0x4A statt 0x49).
 
-**Taster** (SETUP › ENCODER › TASTER): Jeder Zusatz-Encoder hat einen Drucktaster. Kurz drücken löst beim Loslassen aus, lang (> 0,45 s) sobald die Zeit erreicht ist.
+**SETUP › ENCODER** zeigt oben GERAETE (z. B. `M5+2QUAD`), das aktive **SET** und die DREHRICHTUNG. Darunter stehen alle gefundenen Zusatz-Encoder nach Gerät (`= M5STACK =`, `= QUAD 1 =`, `= QUAD 2 =`) mit ihrer Funktion. **Dreh an einem Zusatz-Encoder, dann springt der Cursor auf seine Zeile.** Ein Druck öffnet die Seite dieses Encoders. Auch dort wechselt das Drehen an einem anderen Zusatz-Encoder direkt zu dessen Einstellungen.
+
+**Encoder-Seite** (Titel z. B. `E3`, rechts das Gerät). Nach der FUNKTION erscheinen nur die passenden Zeilen:
+
+| FUNKTION | Weitere Zeilen | Wirkung |
+|---|---|---|
+| **AUS** | – | wird nicht abgefragt (spart I2C-Zeit) |
+| **SEITE** | – | steuert die ersten Werte der offenen Seite (E1–E8 = 1.–8. Wert, Q1–Q4 und Q5–Q8 = 1.–4. Wert): auf SPIELEN die 4 Makros, im MIXER Level/Pan/Porta/Reverb, im SEQUENCER Tempo/Swing, im 303-Editor Note/Oktave/Accent/Slide, auf der Drum-Seite 8 Steps, bei GRIDS LIVE X/Y/Dichte, im Wellenform-Editor START/ENDE/LOOP A/LOOP B |
+| **PATCH** | **KANAL** AKTUELL oder K1–K16 · **LISTE** ALLE, eine Kategorie (BASS, LEAD, PAD …), FAVORITEN oder DRUMKITS · **LADEN** SOFORT oder AUF DRUCK | Drehen wechselt den Patch des Kanals im laufenden Betrieb. AKTUELL folgt dem gerade gewählten Kanal. Ein Kanal mit Drumkit blättert immer durch die Drumkits. |
+| **KANAL** | – | Drehen wählt den aktuellen MIDI-Kanal (wie gedrückt halten und drehen am Single) |
+| **PARAMETER** | **GRUPPE** MIXER, KLANG, EFFEKTE, SEQ+SZENE, 303, DRUMS, MODULAR, AUDIO IN · **WERT** | fester Parameter, z. B. Master, Cutoff, Reverb, 303 DRIVE, IN GAIN. Beim Drehen erscheint kurz der Wert. |
+
+Dazu auf jeder Encoder-Seite: **JETZT** (aktueller Patch oder Wert), **TASTER** (siehe unten) und **LED**.
+
+- **LADEN SOFORT** (ab Werk): Der Patch wird nach 120 ms Ruhe geladen, der Sequencer läuft weiter. Die Einblendung zeigt z. B. `K1 JUNO 012` / `Clock Chimes`. Schnelles Drehen springt in 4er-Schritten.
+- **LADEN AUF DRUCK** (für live): Drehen zeigt nur `K3 > 045 DRUCK` und den Namen, der Klang bleibt. Erst der Taster des Encoders lädt den Patch. In der Übersicht steht dann ein `*` hinter der Belegung. Der TASTER wird dabei automatisch auf KONTEXT gestellt.
+- Ist der Kanal der CHROM.-Kanal des Samplers, erscheint `K1 SAMPLER`. Ist eine Liste leer (z. B. noch keine Favoriten), erscheint `LISTE LEER`.
+
+**LED** (M5Stack und Quads): **AUTO** zeigt die Funktion als Farbe – SEITE weiß, PATCH blau, KANAL lila, AUS dunkel, PARAMETER nach Gruppe (MIXER und SEQ+SZENE gelb, KLANG und DRUMS orange, EFFEKTE grün, 303 rot, MODULAR cyan, AUDIO IN lila). Oder eine feste Farbe: AUS, ROT, ORANGE, GELB, GRUEN, CYAN, BLAU, LILA, WEISS.
+
+**Encoder-Sets A/B/C:** drei komplette Belegungen (Funktion, Optionen, Taster, LED), z. B. eine für live und eine fürs Klangschrauben. Umschalten unter SETUP › ENCODER › **SET** (drehen, Druck aktiviert) oder per Taster-Funktion **ENC-SET >** (A → B → C → A). Ein neues Set startet als Kopie des bisherigen.
+
+**Taster** (auf der Encoder-Seite): Jeder Zusatz-Encoder hat einen Drucktaster. Kurz drücken löst beim Loslassen aus, lang (> 0,45 s) sobald die Zeit erreicht ist.
 
 | Belegung | Kurz | Lang |
 |---|---|---|
-| **KONTEXT** (ab Werk) | PATCH Kn: Kanal n stumm/an · fester Parameter: großer Ring zum Feineinstellen · SEITE auf der Drum-Seite: Step unter dem Encoder setzen (AUS → 100 % → 67 % → 40 %) | PATCH Kn: Patch-Browser für Kanal n |
+| **KONTEXT** (ab Werk) | PATCH: vorgemerkten Patch laden (AUF DRUCK), sonst Kanal stumm/an · KANAL: aktuellen Kanal stumm/an · fester Parameter: großer Ring zum Feineinstellen · SEITE auf der Drum-Seite: Step unter dem Encoder setzen | PATCH/KANAL: Patch-Browser für den Kanal |
 | START/STOP | Sequencer starten/stoppen | – |
 | TAP TEMPO | Tempo tippen | – |
 | PANIC (LANG) | – | alle Noten aus |
 | MUTE K1–K4 | Kanal stumm/an | – |
 | MUTE 303 / MUTE DRUMS | Spur stumm/an | – |
 | AUDIO IN | Eingang an/aus (MODULAR › AUDIO IN) | – |
+| ENC-SET > | nächstes Encoder-Set | – |
 | AUS | wird nicht abgefragt | |
 
-Ab Werk: E1–E4 SEITE, E5 Master, E6 Level, E7 Reverb, E8 Echo, **Q1–Q4 PATCH K1–K4**, Q5–Q8 AUS. Die Belegung bleibt gespeichert, auch wenn ein Gerät einmal nicht angeschlossen ist.
+Ab Werk: E1–E4 SEITE, E5 Master, E6 Level, E7 Reverb, E8 Echo, **Q1–Q8 PATCH K1–K8**. Die Belegung bleibt gespeichert, auch wenn ein Gerät einmal nicht angeschlossen ist. Ältere Stände behalten ihre Belegung (bisher AUS bleibt AUS).
 
 ### Statuszeile (oben)
 `C1` = aktueller MIDI-Kanal · Patch-Familie (JUNO/DX7/DRUM …, `SMP` = Sampler-Kanal) · `IN` = AUDIO IN läuft · Tempo · ▶ läuft / ■ steht. Die dünne Linie darunter zeigt die CPU-Last (hell ab 85 %).
@@ -167,7 +186,8 @@ SPIELEN (Startseite)
     │
     └─ SETUP
         ├─ MIDI ─► MIDI THRU · MIDI OUT TYP (A/B) · CLOCK · RST ALL MIDI
-        ├─ ENCODER ─► GERAETE · DREHRICHTUNG · E1–E8 · Q1–Q8 (nur angeschlossene) · TASTER · I2C-SCAN
+        ├─ ENCODER ─► GERAETE · SET (A/B/C) · DREHRICHTUNG · E1–E8 · Q1–Q8 (nur angeschlossene) · I2C-SCAN
+        │   └─ Ex/Qx ─► FUNKTION · KANAL · LISTE · LADEN · GRUPPE · WERT · JETZT · TASTER · LED
         ├─ MAKROS ─► MAKRO 1–4
         ├─ AUDIO (STEREO/MONO) · STIMMEN MAX · FAILSAFE
         ├─ DISPLAY ─► HELLIGKEIT · SCHONER NACH · UPDATE (VOLL/BAENDER)
@@ -440,7 +460,7 @@ Der Sampler hat **8 Slots** (S1–S8). Ein Slot zeigt auf eine WAV-Datei auf der
 
 ### SETUP
 - **RST ALL MIDI** entfernt die Patches von allen Kanälen.
-- **ENCODER:** **GERAETE** zeigt die erkannten Zusatz-Geräte (z. B. `M5+QUAD`). **I2C-SCAN** listet jedes Gerät am Bus mit Adresse, erkanntem Typ und Seesaw-Produktnummer (P5752 = Quad). Fehlt ein Encoder im Menü, zeigt diese Liste, ob er überhaupt antwortet und als was er erkannt wird. Darunter DREHRICHTUNG und die Belegung aller angeschlossenen Encoder E1–E8 und Q1–Q8 (siehe Abschnitt 1).
+- **ENCODER:** **GERAETE** zeigt die erkannten Zusatz-Geräte (z. B. `M5+2QUAD`). **I2C-SCAN** listet jedes Gerät am Bus mit Adresse, erkanntem Typ und Seesaw-Produktnummer (P5752 = Quad). Fehlt ein Encoder im Menü, zeigt diese Liste, ob er überhaupt antwortet und als was er erkannt wird. Dazu SET, DREHRICHTUNG und die Übersicht aller angeschlossenen Encoder E1–E8 und Q1–Q8 (siehe Abschnitt 1).
 - **FAILSAFE** begrenzt die Rechenlast. Bei Überlast werden Stimmen abgeschaltet statt zu knacken.
 - **DISPLAY:** **HELLIGKEIT** (Kontrast), **SCHONER NACH** (dimmt nach 1–30 min ohne Eingabe; die erste Eingabe weckt nur), **UPDATE** BAENDER = nur geänderte Bildteile senden (schont den Takt), VOLL = immer das ganze Bild (falls das Bild fehlerhaft ist).
 - **TAKT:**
