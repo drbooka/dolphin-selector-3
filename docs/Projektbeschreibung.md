@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Projektbeschreibung
 
-Stand 26.10.2026 · Sketch-Version 13.24 (13.18 auf der Hardware bestätigt)
+Stand 26.10.2026 · Sketch-Version 13.24 (13.18 auf der Hardware bestätigt, dazu Start von v13.24 und AUDIO IN)
 
 ## Ziel
 
@@ -95,7 +95,7 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 7. **Kalibrierung nach Firmware-Update prüfen:** Seit dem Update vom 10.08.2026 ist `cv_in` neu kalibriert (ein konstanter Versatz von −0,6 V entfällt) und v1.5-Boards geben den vollen DAC-Bereich aus. Alte OFFSET-/SKALA-Werte unter MODULAR › KALIBRIERUNG können danach falsch sein.
 8. **EQ nach Firmware-Update:** Die Firmware hat das Vorzeichen im EQ-Bassband korrigiert. Das PUNCH-Profil auf dem Drum-Bus kann danach bassiger klingen als gewohnt.
 9. **VCO (v13.21):** Trackt `freq` mit `ext0`/`ext1` sauber 1 V/Okt über 5 Oktaven (V/OKT-Abgleich)? Läuft Synth 40 (SETUP › INFO › VCO-SYNTH)? Klingt die `chained_osc`-Kette (SUB, OSZ 2) und bleibt der Pegel mit beiden voll aufgedreht ohne Übersteuern?
-10. **AUDIO IN (v13.22):** Spielt die Firmware `AUDIO_IN0/1` als Oszillator (Eingang hörbar, nicht nur in der Pegelanzeige)? Stereo richtig herum? Latenz, Rauschen bei IN GAIN +12 dB, Knacken beim Schalten. SETUP › INFO › AUDIO IN muss 41/42 zeigen.
+10. ~~**AUDIO IN (v13.22)**~~ – **am 26.10.2026 auf der Hardware bestätigt** (mit v13.24): Pegelanzeige, Durchlauf, Stereo, Filter, Distortion, Bus-Effekte, Rauschen, Latenz und Ein/Aus in Ordnung. Rest: leichtes Knacken beim Umschalten des Filtertyps.
 
 ## Stand der Firmware-Neuerungen (Discord #announcements bis 12.09.2026, GitHub bis v1.2.200)
 
