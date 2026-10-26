@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Bedienungsanleitung
 
-Version 13.24 · Stand 26.10.2026 · AMYboard im Eurorack-Case
+Version 13.25 · Stand 26.10.2026 · AMYboard im Eurorack-Case
 
 ---
 
@@ -160,6 +160,7 @@ SPIELEN (Startseite)
     │   │             DISTORTION · IN DRIVE · DIST MIX
     │   ├─ SCOPE
     │   └─ KALIBRIERUNG ─► OUT1 OFFSET · OUT1 SKALA · OUT2 OFFSET · OUT2 SKALA · TESTSPANNUNG
+    │                     IN1 OFFSET · IN1 SKALA · IN2 OFFSET · IN2 SKALA · IN1 ABGLEICH · IN2 ABGLEICH · IN WERKSWERTE
     │
     ├─ SZENEN
     │   ├─ SZENE 1–8 ─► LADEN · SPEICHERN · ALS MORPH A · ALS MORPH B · LOESCHEN
@@ -340,7 +341,11 @@ Eine Karte mit vier Ecken erzeugt die Drum-Patterns. X und Y mischen stufenlos z
 - Pitch überall 1 V/Oktave, 0 V = C1 (MIDI 24).
 - **CV MOD:** LFO oder Hüllkurve (ENV, ausgelöst von Noten des aktuellen Kanals) auf OUT 1/2. Belegt ein Eurorack-Modus den Ausgang, hat der Modus Vorrang.
 - **WAVEFOLDER (v13.20):** CV LFO › FOLD (CLIP/FOLD/CLIP+FOLD) faltet den LFO in AMY. TIEFE wirkt vor dem Folder (wie der Eingangspegel), LFO DRIVE verstärkt zusätzlich, FOLD MIX blendet zwischen glatt und gefaltet. FOLD MOD = CV IN1/IN2 verschiebt den Drive per Spannung (MOD TIEFE 1 = ±2 Oktaven, 5 V = voller Ausschlag). Oben auf der Seite zeigt eine Vorschau die Welle (Näherung). LFO DRIVE und ENV DRIVE lassen sich als Makro oder Encoder belegen. CV ENV hat FOLD, ENV DRIVE und FOLD MIX ebenfalls.
-- **KALIBRIERUNG:** TESTSPANNUNG auf 0–4 V stellen, am Oszillator oder Stimmgerät nachmessen, dann OFFSET/SKALA pro Ausgang anpassen.
+- **KALIBRIERUNG:** Oben stehen IN1, IN2 (kalibriert) und OUT1 live. Immer **erst die Ausgänge, dann die Eingänge**:
+  1. **Ausgang:** Multimeter (V DC) an OUT1. TESTSPANNUNG **0V**, dann OUT1 OFFSET auf 0,000 V stellen. TESTSPANNUNG **4V**, dann OUT1 SKALA auf 4,000 V stellen. SKALA wirkt bei 0 V nicht, der Nullpunkt bleibt. Kontrolle bei 1–3 V. OUT2 genauso.
+  2. **Eingang:** Kabel **OUT1 → IN1**, dann **IN1 ABGLEICH** drücken. Das Board gibt 1 V und 3 V aus, misst je 0,3 s und trägt IN1 OFFSET und SKALA ein („IN1 OK +0.186V x1.005“). Für IN2 das Kabel umstecken und **IN2 ABGLEICH** drücken. `KEIN SIGNAL?` heißt: Kabel prüfen.
+  3. Die Eingangs-Kalibrierung gilt überall: CV-Monitor, QUANTIZE, Grids per CV, FOLD MOD, VCO und GATE+PITCH. **IN WERKSWERTE** setzt sie zurück.
+  - Ein Eingang ohne Kabel zeigt etwa 0,1–0,2 V. Bleibt ein Wert beim Umstecken stehen, kommt das Signal nicht an (Kabel).
 
 #### VCO (v13.21)
 **MODULAR › VCO** macht das AMYboard zu einem eigenständigen Oszillator: Es klingt dauerhaft (kein MIDI, kein Gate nötig), die Tonhöhe kommt per 1 V/Okt über CV IN 1 oder IN 2. Ausgang ist der normale Audio-Ausgang des AMYboards, Lautstärke und Hüllkurve machen VCA und ADSR im Rack.

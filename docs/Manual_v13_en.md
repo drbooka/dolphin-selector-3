@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – User Manual
 
-Version 13.24 · 26 Oct 2026 · AMYboard in a Eurorack case · English edition
+Version 13.25 · 26 Oct 2026 · AMYboard in a Eurorack case · English edition
 
 This manual describes the English edition of the sketch (`sketch_v13.19_en.py`), where all menus are in English. The German edition works the same way. Saved settings and scenes can be used by both.
 
@@ -162,6 +162,7 @@ HOME (start page)
     │   │             DISTORTION · IN DRIVE · DIST MIX
     │   ├─ SCOPE
     │   └─ CALIBRATION ─► OUT1 OFFSET · OUT1 SCALE · OUT2 OFFSET · OUT2 SCALE · TEST VOLTAGE
+    │                    IN1 OFFSET · IN1 SCALE · IN2 OFFSET · IN2 SCALE · IN1 AUTO TRIM · IN2 AUTO TRIM · IN RESET
     │
     ├─ SCENES
     │   ├─ SCENE 1–8 ─► LOAD · SAVE · AS MORPH A · AS MORPH B · DELETE
@@ -344,7 +345,11 @@ A map with four corners creates the drum patterns. X and Y blend smoothly betwee
 - Pitch is always 1 V/octave, 0 V = C1 (MIDI 24).
 - **CV MOD:** LFO or envelope (ENV, triggered by notes of the current channel) on OUT 1/2. If a Eurorack mode uses the output, the mode has priority.
 - **WAVEFOLDER (v13.20):** CV LFO › FOLD (CLIP/FOLD/CLIP+FOLD) folds the LFO inside AMY. DEPTH acts before the folder (like the input level), LFO DRIVE adds more gain, FOLD MIX blends between smooth and folded. FOLD MOD = CV IN1/IN2 shifts the drive by voltage (MOD DEPTH 1 = ±2 octaves, 5 V = full swing). A preview at the top of the page shows the wave (approximate). LFO DRIVE and ENV DRIVE can be assigned to a macro or encoder. CV ENV also has FOLD, ENV DRIVE and FOLD MIX.
-- **CALIBRATION:** set TEST VOLTAGE to 0–4 V, measure it with an oscillator or tuner, then adjust OFFSET/SCALE per output.
+- **CALIBRATION:** IN1, IN2 (calibrated) and OUT1 are shown live at the top. Always **outputs first, then inputs**:
+  1. **Output:** multimeter (V DC) on OUT1. TEST VOLTAGE **0V**, then set OUT1 OFFSET to 0.000 V. TEST VOLTAGE **4V**, then set OUT1 SCALE to 4.000 V. SCALE has no effect at 0 V, so the zero point stays. Check at 1–3 V. OUT2 the same way.
+  2. **Input:** cable **OUT1 → IN1**, press **IN1 AUTO TRIM**. The board puts out 1 V and 3 V, measures 0.3 s each and stores IN1 OFFSET and SCALE ("IN1 OK +0.186V x1.005"). For IN2, move the cable and press **IN2 AUTO TRIM**. `NO SIGNAL?` means: check the cable.
+  3. The input calibration applies everywhere: CV monitor, QUANTIZE, Grids via CV, FOLD MOD, VCO and GATE+PITCH. **IN RESET** resets it.
+  - An input without a cable reads about 0.1–0.2 V. If a value does not change while repatching, the signal is not arriving (cable).
 
 #### VCO (v13.21)
 **MODULAR › VCO** turns the AMYboard into a standalone oscillator: it sounds continuously (no MIDI, no gate needed), pitch comes in as 1 V/oct at CV IN 1 or IN 2. The output is the AMYboard's normal audio out; level and envelope come from a VCA and ADSR in the rack.

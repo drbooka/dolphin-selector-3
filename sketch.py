@@ -24,7 +24,7 @@ try:
     import random as _random
 except Exception:
     _random = None
-VERSION = "13.24"
+VERSION = "13.25"
 def clamp(v, lo, hi):
     if v < lo:
         return lo
@@ -706,6 +706,7 @@ def default_state():
         "eur": 0, "qscale": 1, "cvsrc": [0, 0], "lfo": [0, 0.5, 0.5],
         "lfof": [0, 4.0, 1.0, 0, 0.5], "envf": [0, 4.0, 1.0],
         "env": [10, 300, 0.5], "cal": [[0.0, 1.0], [0.0, 1.0]],
+        "calin": [[0.0, 1.0], [0.0, 1.0]],
         "tempo": 108, "run": 0, "clock": 0, "swing": 0, "sel": 0,
         "trk": [new_track(1, 60), new_track(2, 60), new_track(3, 60),
                 new_track(DRUM_CHANNEL, 36)],
@@ -941,6 +942,12 @@ def sanitize():
         ff[2] = clamp(ff[2], 0.0, 1.0)
     S["lfof"][3] = clamp_int(S["lfof"][3], 0, 2)
     S["lfof"][4] = clamp(S["lfof"][4], 0.0, 1.0)
+    for key, lo, hi in (("cal", 0.9, 1.1), ("calin", 0.8, 1.25)):
+        if not isinstance(S[key], list) or len(S[key]) != 2:
+            S[key] = [[0.0, 1.0], [0.0, 1.0]]
+        for c in S[key]:
+            c[0] = clamp(c[0], -1.0, 1.0)
+            c[1] = clamp(c[1], lo, hi)
     _sanitize_vco()
     _sanitize_ain()
     _sanitize_sampler()
@@ -1938,9 +1945,13 @@ def cv_write(ch, volts, min_step=0.0):
         _last_cv[ch] = v
     except Exception:
         pass
+def cv_in_cal(ch):
+    c = S["calin"][ch]
+    return c[0], c[1]
 def cv_read(ch):
     try:
-        v = clamp(amyboard.cv_in(channel=ch), CV_IN_MIN, CV_IN_MAX)
+        o, s = cv_in_cal(ch)
+        v = clamp(amyboard.cv_in(channel=ch) * s + o, CV_IN_MIN, CV_IN_MAX)
     except Exception:
         return cv_in_v[ch]
     cv_in_v[ch] = v
@@ -1966,14 +1977,18 @@ def _eur_apply_to_channel(mode, ch):
         if fam not in ("JUNO", "AMYB", "DX7", "PIANO"):
             return
         amy.send(synth=ch, num_voices=1)
+        go, gs = cv_in_cal(0)
+        po, ps = cv_in_cal(1)
+        hi = round((GATE_HIGH - go) / gs, 3)
+        lo = round((GATE_LOW - go) / gs, 3)
         if fam in ("JUNO", "AMYB"):
             for o in PITCH_OSCS[fam]:
-                amy.send(synth=ch, osc=o, freq={"ext1": 1})
-            amy.send(cv_trigger="0,%s,%s,i%dl1n%d" % (GATE_HIGH, GATE_LOW, ch, CV_ZERO_NOTE))
+                amy.send(synth=ch, osc=o, freq={"ext1": round(ps, 4)})
+            amy.send(cv_trigger="0,%s,%s,i%dl1n%.3f" % (hi, lo, ch, CV_ZERO_NOTE + 12.0 * po))
         else:
-            amy.send(cv_trigger="0,%s,%s,1,1.0,%.4f,i%dl1n%%v" % (
-                GATE_HIGH, GATE_LOW, _cv_trigger_offset(), ch))
-        amy.send(cv_trigger="0,%s,%s,i%dl0" % (GATE_LOW, GATE_HIGH, ch))
+            amy.send(cv_trigger="0,%s,%s,1,%.4f,%.4f,i%dl1n%%v" % (
+                hi, lo, ps, _cv_trigger_offset() + po, ch))
+        amy.send(cv_trigger="0,%s,%s,i%dl0" % (lo, hi, ch))
     elif mode == EUR_MIDI_CV and NOTE_OUTPUT_CV_NATIVE:
         amy.send(synth=ch, note_output="%d,0,1,,12,%d,%s" % (
             NOTE_OUTPUT_CV_GATE, CV_ZERO_NOTE, CV_GATE_VOLTS))
@@ -2297,16 +2312,19 @@ def vco_hz(semis=0.0):
     return 440.0 * 2 ** ((v["root"] + semis - 69) / 12.0 + v["fine"] / 1200.0)
 def _vco_ext(v):
     e = [0.0, 0.0]
-    if v["src"] and not v["pm"]:
-        e[v["src"] - 1] += v["trk"]
-    if v["msrc"] and v["mt"] == 0:
-        e[v["msrc"] - 1] += v["md"] * VCO_FM_OCT
-    return e
+    sh = 0.0
+    for c, k in ((v["src"], v["trk"] if (v["src"] and not v["pm"]) else 0.0),
+                 (v["msrc"], v["md"] * VCO_FM_OCT if (v["msrc"] and v["mt"] == 0) else 0.0)):
+        if c and k:
+            o, s = cv_in_cal(c - 1)
+            e[c - 1] += k * s
+            sh += k * o
+    return e, sh
 def _vco_send_freq():
     v = S["vco"]
     semis = _vco_q if (v["pm"] and v["src"] and _vco_q is not None) else 0
-    f0 = vco_hz(semis)
-    e = _vco_ext(v)
+    e, sh = _vco_ext(v)
+    f0 = vco_hz(semis) * 2 ** sh
     f2 = f0 * 2 ** (v["iv"] / 12.0 + v["det"] / 1200.0)
     for o, f in ((0, f0), (1, f0 / (2 ** v["so"])), (2, f2)):
         amy.send(synth=VCO_SYNTH, osc=o,
@@ -2315,11 +2333,15 @@ def _vco_send_freq():
 def _vco_send_duty():
     v = S["vco"]
     d = [0.0, 0.0]
+    pw = v["pw"]
     if v["msrc"] and v["mt"] == 1:
-        d[v["msrc"] - 1] = round(v["md"] * VCO_PWM_PER_V, 4)
+        o, s = cv_in_cal(v["msrc"] - 1)
+        k = v["md"] * VCO_PWM_PER_V
+        d[v["msrc"] - 1] = round(k * s, 4)
+        pw = clamp(pw + k * o, 0.02, 0.98)
     for o in (0, 2):
         amy.send(synth=VCO_SYNTH, osc=o,
-                 duty={"const": round(v["pw"], 3), "ext0": d[0], "ext1": d[1]})
+                 duty={"const": round(pw, 3), "ext0": d[0], "ext1": d[1]})
 def _vco_send_wave():
     w = _wave_const(S["vco"]["wav"])
     for o in (0, 2):
@@ -5541,6 +5563,49 @@ def _cal_changed():
     cv_write(1, cv_out_v[1])
 _CAL_TEST_V = [None, 0.0, 1.0, 2.0, 3.0, 4.0]
 _cal_ui = [0]
+def _calin_changed():
+    if _vco_running:
+        try:
+            _vco_send_freq()
+            _vco_send_duty()
+        except Exception as e:
+            print("CALIN VCO", e)
+    if _eur_mode == EUR_GATE_PITCH and cal_test is None:
+        apply_eurorack_mode()
+def _cv_mean(ch, ms=300):
+    acc = 0.0
+    n = 0
+    t0 = now()
+    while since(t0) < ms:
+        try:
+            acc += amyboard.cv_in(channel=ch)
+            n += 1
+        except Exception:
+            pass
+        time.sleep_ms(6)
+    return acc / n if n else None
+def cal_in_auto(ch):
+    name = "IN%d" % (ch + 1)
+    toast(name + " ABGLEICH", "MISST...", 4000)
+    render(force=True)
+    r = []
+    for v in (1.0, 3.0):
+        set_cal_test(v)
+        time.sleep_ms(250)
+        r.append(_cv_mean(ch))
+    set_cal_test(_CAL_TEST_V[_cal_ui[0]])
+    if r[0] is None or r[1] is None or r[1] - r[0] < 1.2:
+        toast(name + " ABGLEICH", "KEIN SIGNAL?", 2500)
+        return
+    s = 2.0 / (r[1] - r[0])
+    o = 1.0 - s * r[0]
+    if not (0.8 <= s <= 1.25 and -1.0 <= o <= 1.0):
+        toast(name + " ABGLEICH", "WERTE UNPLAUSIBEL", 2500)
+        return
+    S["calin"][ch] = [round(o, 3), round(s, 4)]
+    _calin_changed()
+    request_save()
+    toast(name + " OK", "%+.3fV x%.3f" % (o, s), 2500)
 def _cal_test_changed():
     set_cal_test(_CAL_TEST_V[_cal_ui[0]])
 P_CAL = [
@@ -5550,6 +5615,12 @@ P_CAL = [
     P("OUT2 SKALA", lambda: (S["cal"][1], 1), 0.9, 1.1, 0.001, "%.3f", apply=_cal_changed),
     P("TESTSPANNUNG", lambda: (_cal_ui, 0), kind=ENUM,
       opts=["AUS", "0V C1", "1V C2", "2V C3", "3V C4", "4V C5"], apply=_cal_test_changed),
+    P("IN1 OFFSET", lambda: (S["calin"][0], 0), -1.0, 1.0, 0.002, "%+.3f", unit="V", bip=True,
+      apply=_calin_changed),
+    P("IN1 SKALA", lambda: (S["calin"][0], 1), 0.8, 1.25, 0.001, "%.3f", apply=_calin_changed),
+    P("IN2 OFFSET", lambda: (S["calin"][1], 0), -1.0, 1.0, 0.002, "%+.3f", unit="V", bip=True,
+      apply=_calin_changed),
+    P("IN2 SKALA", lambda: (S["calin"][1], 1), 0.8, 1.25, 0.001, "%.3f", apply=_calin_changed),
 ]
 P_MORPH = P("MORPH A>B", rS("mx"), 0.0, 1.0, 0.02, apply=request_morph, key="morph", short="MRPH")
 P_MA = P("MORPH A", rS("mA"), kind=ENUM, opts=["1", "2", "3", "4", "5", "6", "7", "8"], apply=request_morph)
@@ -7279,8 +7350,40 @@ def _calib_leave():
     if cal_test is not None:
         _cal_ui[0] = 0
         set_cal_test(None)
+def _cal_reset_in():
+    S["calin"] = [[0.0, 1.0], [0.0, 1.0]]
+    _calin_changed()
+    request_save()
+    toast("IN1/IN2", "WERKSWERTE", 1200)
+class CalibPage(ListPage):
+    def __init__(self):
+        ListPage.__init__(self, "KALIBRIERUNG", P_CAL + [
+            action("IN1 ABGLEICH", lambda: cal_in_auto(0)),
+            action("IN2 ABGLEICH", lambda: cal_in_auto(1)),
+            action("IN WERKSWERTE", lambda: push(Confirm("IN1/IN2", "KALIBRIERUNG", "ZURUECKSETZEN?", _cal_reset_in)))],
+            on_leave=_calib_leave)
+        self.y0 = 50
+        self.n = 6
+        self._next = 0
+        self._shown = None
+    def tick(self):
+        if since(self._next) < 0:
+            return False
+        self._next = time.ticks_add(now(), 150)
+        k = (round(cv_read(0), 3), round(cv_read(1), 3), round(cv_out_v[0], 3))
+        if k != self._shown:
+            self._shown = k
+            return True
+        return False
+    def draw_head(self):
+        draw_title(self.ttl())
+        T("IN1 %+.3f" % cv_in_v[0], 0, 27, HI)
+        T("IN2 %+.3f" % cv_in_v[1], 0, 37, HI)
+        TR("OUT1", 128, 27, DIM)
+        TR("%+.3f" % cv_out_v[0], 128, 37, MID)
+        HL(0, 46, 128, GH)
 def calib_page():
-    return ListPage("KALIBRIERUNG", P_CAL, on_leave=_calib_leave)
+    return CalibPage()
 class ScopePage(Page):
     custom = True
     def __init__(self):

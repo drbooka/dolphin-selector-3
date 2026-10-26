@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Projektbeschreibung
 
-Stand 26.10.2026 · Sketch-Version 13.24 (13.18 auf der Hardware bestätigt, dazu Start von v13.24 und AUDIO IN)
+Stand 26.10.2026 · Sketch-Version 13.25 (13.18 auf der Hardware bestätigt, dazu Start von v13.24 und AUDIO IN)
 
 ## Ziel
 
@@ -83,6 +83,7 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 | 13.22 | 23.10.2026 | AUDIO IN: Stereo-Eingang live durch Gain, Distortion, Filter und die Bus-Effekte (Synths 41/42 mit `AUDIO_IN0/1`), Pegelanzeige, Taster-Funktion, Makros, Statuszeile `IN` |
 | 13.23 | 25.10.2026 | I2C-SCAN unter SETUP › ENCODER und INFO › I2C: Adresse, erkannter Typ, Seesaw-Produktnummer (Fehlersuche Quad) |
 | 13.24 | 26.10.2026 | Encoder-Menü neu: Übersicht nach Gerät mit Sprung per Drehen, Encoder-Seite mit FUNKTION (AUS/SEITE/PATCH/KANAL/PARAMETER), PATCH für K1–K16 oder AKTUELL mit LISTE und LADEN SOFORT/AUF DRUCK, Parameter in Gruppen, LED-Farbe je Encoder (AUTO/fest), Encoder-Sets A/B/C |
+| 13.25 | 26.10.2026 | Kalibrierung der CV-Eingänge (IN1/IN2 OFFSET/SKALA) mit Auto-Abgleich über OUT1, wirkt auch auf VCO und GATE+PITCH im AMY-Weg |
 
 ## Offene Punkte (auf der Hardware zu prüfen)
 
@@ -92,9 +93,9 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 4. Joystick: Stimmt die Richtung hoch/runter? Sonst `JOY_Y_INVERT = True`.
 5. Drum-Trigger: Reicht ein Gate von 1/32 für die A-140-2v?
 6. Grids per CV: Stimmt die Richtung an CV IN 1/2?
-7. **Kalibrierung nach Firmware-Update prüfen:** Seit dem Update vom 10.08.2026 ist `cv_in` neu kalibriert (ein konstanter Versatz von −0,6 V entfällt) und v1.5-Boards geben den vollen DAC-Bereich aus. Alte OFFSET-/SKALA-Werte unter MODULAR › KALIBRIERUNG können danach falsch sein.
+7. **Kalibrierung:** Am 26.10.2026 OUT1 mit Multimeter kalibriert (OFFSET −0,312 V, SKALA 0,984 – der Ausgang lag ab Werk 0,3 V zu hoch). IN1 misst ca. 0,19 V zu wenig (1,00 → 0,81 V, 3,00 → 2,80 V) → mit v13.25 per IN1 ABGLEICH korrigieren. Offen: OUT2 und IN2 kalibrieren. Ein defektes Patchkabel hatte zuerst einen toten Eingang vorgetäuscht.
 8. **EQ nach Firmware-Update:** Die Firmware hat das Vorzeichen im EQ-Bassband korrigiert. Das PUNCH-Profil auf dem Drum-Bus kann danach bassiger klingen als gewohnt.
-9. **VCO (v13.21):** Trackt `freq` mit `ext0`/`ext1` sauber 1 V/Okt über 5 Oktaven (V/OKT-Abgleich)? Läuft Synth 40 (SETUP › INFO › VCO-SYNTH)? Klingt die `chained_osc`-Kette (SUB, OSZ 2) und bleibt der Pegel mit beiden voll aufgedreht ohne Übersteuern?
+9. **VCO (v13.21):** Klang, SUB, OSZ 2 und Pegel am 26.10.2026 bestätigt (sauber auch mit beiden auf 1.0). Knacken beim Wechsel der WELLE. Offen: Tracking über 5 Oktaven – erst nach IN1 ABGLEICH (v13.25) sinnvoll; QUANT.
 10. ~~**AUDIO IN (v13.22)**~~ – **am 26.10.2026 auf der Hardware bestätigt** (mit v13.24): Pegelanzeige, Durchlauf, Stereo, Filter, Distortion, Bus-Effekte, Rauschen, Latenz und Ein/Aus in Ordnung. Rest: leichtes Knacken beim Umschalten des Filtertyps.
 
 ## Stand der Firmware-Neuerungen (Discord #announcements bis 12.09.2026, GitHub bis v1.2.200)
