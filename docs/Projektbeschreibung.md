@@ -93,10 +93,12 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 4. Joystick: Stimmt die Richtung hoch/runter? Sonst `JOY_Y_INVERT = True`.
 5. Drum-Trigger: Reicht ein Gate von 1/32 für die A-140-2v?
 6. Grids per CV: Stimmt die Richtung an CV IN 1/2?
-7. **Kalibrierung:** Am 26.10.2026 OUT1 mit Multimeter kalibriert (OFFSET −0,312 V, SKALA 0,984 – der Ausgang lag ab Werk 0,3 V zu hoch). IN1 per Auto-Abgleich (v13.25): OFFSET +0,169 V, SKALA 1,011. Offen: OUT2 und IN2 kalibrieren. Ein defektes Patchkabel hatte zuerst einen toten Eingang vorgetäuscht.
+7. **Kalibrierung:** Am 26.10.2026 OUT1 mit Multimeter kalibriert (OFFSET −0,312 V, SKALA 0,984 – der Ausgang lag ab Werk 0,3 V zu hoch). Auto-Abgleich (v13.25): IN1 OFFSET +0,169 V / SKALA 1,011, IN2 +0,15 V / 1,010 (gleicher Bauteil-Versatz). Offen: OUT2 kalibrieren. Ein defektes Patchkabel hatte zuerst einen toten Eingang vorgetäuscht.
 8. **EQ nach Firmware-Update:** Die Firmware hat das Vorzeichen im EQ-Bassband korrigiert. Das PUNCH-Profil auf dem Drum-Bus kann danach bassiger klingen als gewohnt.
-9. ~~**VCO (v13.21)**~~ – **am 26.10.2026 auf der Hardware bestätigt:** Klang, SUB, OSZ 2, Pegel (sauber auch mit beiden auf 1.0), Tracking nach IN1-Abgleich ohne Steigungsfehler (Rest −12 ct → VCO FEIN +12, Streuung ±8 ct durch Zittern des CV-Eingangs), QUANT mit CHROM/MAJOR sauber und ohne Flattern. Rest: Knacken beim Wechsel der WELLE; Zittern im Modus FREI (evtl. Glättung als Option); MOD IN (FM/PWM/FOLD) noch offen.
+9. ~~**VCO (v13.21)**~~ – **am 26.10.2026 auf der Hardware bestätigt:** Klang, SUB, OSZ 2, Pegel (sauber auch mit beiden auf 1.0), Tracking nach IN1-Abgleich ohne Steigungsfehler (Rest −12 ct → VCO FEIN +12, Streuung ±8 ct durch Zittern des CV-Eingangs), QUANT mit CHROM/MAJOR sauber und ohne Flattern. Rest: Knacken beim Wechsel der WELLE; Zittern im Modus FREI (evtl. Glättung als Option). MOD IN mit FM, PWM und FOLD bestätigt.
 10. ~~**AUDIO IN (v13.22)**~~ – **am 26.10.2026 auf der Hardware bestätigt** (mit v13.24): Pegelanzeige, Durchlauf, Stereo, Filter, Distortion, Bus-Effekte, Rauschen, Latenz und Ein/Aus in Ordnung. Rest: leichtes Knacken beim Umschalten des Filtertyps.
+
+11. **Wavefolder CV LFO (v13.20):** am 26.10.2026 bestätigt, dass AMY auch am CV-Ausgang faltet (über VCO-FM hörbar: mehrere Buckel pro Durchgang). Offen: Spitzenpegel bei TIEFE 1.0 + DRIVE, ENV mit FOLD ins Negative, FOLD MOD per CV IN.
 
 ## Stand der Firmware-Neuerungen (Discord #announcements bis 12.09.2026, GitHub bis v1.2.200)
 
