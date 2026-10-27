@@ -44,10 +44,10 @@ Optional folders on the SD card: `samples/` for WAV files (16-bit PCM), `dx7/` f
 ## Documentation
 
 English:
-- [User manual](docs/Manual_v13_en.md): all controls and the full menu tree
+- [User manual](docs/Manual_v13_en.md): all controls and the full menu tree, tips and tricks, patch ideas for MODULAR · [PDF](docs/pdf/Manual_en.pdf)
 
 German:
-- [Bedienungsanleitung](docs/Bedienungsanleitung.md): user manual with the full menu tree
+- [Bedienungsanleitung](docs/Bedienungsanleitung.md): user manual with the full menu tree, Tipps und Tricks, Patch-Vorschläge für MODULAR · [PDF](docs/pdf/Bedienungsanleitung.pdf)
 - [Projektbeschreibung](docs/Projektbeschreibung.md): architecture, version history, open hardware tests
 - [Änderungen](docs/changes/): change notes per version
 
