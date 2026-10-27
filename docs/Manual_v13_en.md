@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – User Manual
 
-Version 13.26 · 27 Oct 2026 · AMYboard in a Eurorack case · English edition
+Version 13.27 · 27 Oct 2026 · AMYboard in a Eurorack case · English edition
 
 This manual describes the English edition of the sketch (`sketch_v13.19_en.py`), where all menus are in English. The German edition works the same way. Saved settings and scenes can be used by both.
 
@@ -153,7 +153,7 @@ HOME (start page)
     │   ├─ CV MOD OUT1 · CV MOD OUT2 (OFF/LFO/ENV)
     │   ├─ CV LFO ─► WAVE · RATE · DEPTH · FOLD · LFO DRIVE · FOLD MIX · FOLD MOD · MOD DEPTH
     │   ├─ CV ENV ─► ATTACK · RELEASE · DEPTH · FOLD · ENV DRIVE · FOLD MIX
-    │   ├─ VCO ─► VCO · 1V/OCT IN · PITCH (FREE/QUANT) · SCALE · ROOT AT 0V · VCO FINE · V/OCT
+    │   ├─ VCO ─► VCO · 1V/OCT IN · PITCH (FREE/QUANT) · SCALE · SMOOTH · ROOT AT 0V · VCO FINE · V/OCT
     │   │        WAVE · VCO PW · VCO SUB · SUB OCTAVE · VCO OSC 2 · INTERVAL · VCO DETUNE
     │   │        MOD IN · MOD TARGET (FM/PWM/FOLD) · VCO MOD · FOLD · VCO DRIVE · FOLD MIX
     │   │        VCO LEVEL · PAN · BUS
@@ -359,10 +359,11 @@ A map with four corners creates the drum patterns. X and Y blend smoothly betwee
 | **VCO** | ON/OFF |
 | **1V/OCT IN** | OFF · IN1 · IN2: which input controls pitch |
 | **PITCH** | FREE = continuous (AMY tracks the voltage itself, no Python) · QUANT = snapped to SCALE |
+| **SMOOTH** | FREE only (v13.27): OFF · LIGHT · STRONG. Smooths the jitter of the CV input; pitch is then computed in Python (about every 30 ms) instead of by AMY. LIGHT follows jumps in about 60 ms, STRONG in about 200 ms – OFF or LIGHT for sequences, STRONG for held notes and drones |
 | **ROOT AT 0V** | note at 0 V (default C1, as MIDI>CV) |
 | **VCO FINE** | ±100 cents |
 | **V/OCT** | tracking trim 0.950–1.050 if octaves are off |
-| **WAVE** | SIN · TRI · SAW · PULSE; **VCO PW** = pulse width (PULSE only) |
+| **WAVE** | SIN · TRI · SAW · PULSE; **VCO PW** = pulse width (PULSE only). Switching fades out and back in briefly (about 65 ms, v13.27) so it does not click |
 | **VCO SUB** | sub oscillator level (square), **SUB OCTAVE** −1 or −2 |
 | **VCO OSC 2** | level of a second oscillator with the same wave; **INTERVAL** ±24 semitones, **VCO DETUNE** 0–50 cents (beating) |
 | **MOD IN** | OFF · IN1 · IN2: second CV input for modulation |
@@ -388,7 +389,7 @@ A map with four corners creates the drum patterns. X and Y blend smoothly betwee
 | **IN PAN · WIDTH** | position; WIDTH (STEREO only) 1 = full stereo width, 0 = both sides at IN PAN |
 | **BUS** | effect bus (default 2, so synths and drums keep their own effects) |
 | **BUS FX** | opens EFFECTS directly for the input's bus |
-| **FILTER · IN CUTOFF · IN RESO** | OFF · LP · BP · HP · LP24 (· NOTCH · PHASER), as for sample slots |
+| **FILTER · IN CUTOFF · IN RESO** | OFF · LP · BP · HP · LP24 (· NOTCH · PHASER), as for sample slots. Changing the type (DISTORTION too) fades the input out and back in for about 65 ms (v13.27) so it does not click |
 | **DISTORTION · IN DRIVE · DIST MIX** | CLIP/FOLD before the filter |
 
 - **Level meter** at the top: L and R of the input (before IN GAIN) with marks at −24/−12/−6 dB, peak value on the right, **CLIP** when clipping. It also runs while OFF, so you can check the level before switching on. Below it: mode (ST/MO/L/R), bus, filter, distortion.

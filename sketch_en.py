@@ -24,7 +24,7 @@ try:
     import random as _random
 except Exception:
     _random = None
-VERSION = "13.26"
+VERSION = "13.27"
 def clamp(v, lo, hi):
     if v < lo:
         return lo
@@ -673,7 +673,8 @@ def new_vco():
     return {"on": 0, "src": 1, "wav": 2, "root": 24, "fine": 0, "trk": 1.0,
             "pw": 0.5, "sub": 0.0, "so": 1, "o2": 0.0, "iv": 0, "det": 7,
             "pm": 0, "sc": 0, "msrc": 0, "mt": 0, "md": 0.3,
-            "ft": 0, "fd": 2.0, "fm": 1.0, "lvl": 0.8, "pan": 0.5, "bus": 0}
+            "ft": 0, "fd": 2.0, "fm": 1.0, "lvl": 0.8, "pan": 0.5, "bus": 0,
+            "sm": 0}
 def new_ain():
     return {"on": 0, "mode": 0, "gain": 0.0, "lvl": 1.0, "pan": 0.5, "wid": 1.0,
             "bus": 2, "ft": 0, "cu": 8000.0, "rs": 0.7,
@@ -1002,6 +1003,7 @@ def _sanitize_vco():
     v["lvl"] = clamp(v["lvl"], 0.0, 1.5)
     v["pan"] = clamp(v["pan"], 0.0, 1.0)
     v["bus"] = clamp_int(v["bus"], 0, 3)
+    v["sm"] = clamp_int(v["sm"], 0, 2)
 def _sanitize_sampler():
     b = S["sb"]
     if not isinstance(b.get("sl"), list) or len(b["sl"]) != SMP_SLOTS:
@@ -2293,6 +2295,11 @@ _vco_q = None
 _vco_fold_mod = 0.0
 _vco_fold_next = 0
 _vco_fold_sent = None
+VCO_XFADE_MS = 65
+VCO_SM_ALPHA = (0.0, 0.4, 0.15)
+_vco_wave_due = None
+_vco_sm = None
+_vco_sm_sent = None
 def vco_init():
     global VCO_SYNTH
     VCO_SYNTH = None
@@ -2313,7 +2320,7 @@ def vco_hz(semis=0.0):
 def _vco_ext(v):
     e = [0.0, 0.0]
     sh = 0.0
-    for c, k in ((v["src"], v["trk"] if (v["src"] and not v["pm"]) else 0.0),
+    for c, k in ((v["src"], v["trk"] if (v["src"] and not v["pm"] and not v["sm"]) else 0.0),
                  (v["msrc"], v["md"] * VCO_FM_OCT if (v["msrc"] and v["mt"] == 0) else 0.0)):
         if c and k:
             o, s = cv_in_cal(c - 1)
@@ -2322,7 +2329,11 @@ def _vco_ext(v):
     return e, sh
 def _vco_send_freq():
     v = S["vco"]
+    global _vco_sm_sent
     semis = _vco_q if (v["pm"] and v["src"] and _vco_q is not None) else 0
+    if v["src"] and not v["pm"] and v["sm"] and _vco_sm is not None:
+        semis = _vco_sm
+        _vco_sm_sent = _vco_sm
     e, sh = _vco_ext(v)
     f0 = vco_hz(semis) * 2 ** sh
     f2 = f0 * 2 ** (v["iv"] / 12.0 + v["det"] / 1200.0)
@@ -2388,7 +2399,9 @@ def _vco_quant(force=False):
     _vco_q = q
     return True
 def vco_start():
-    global _vco_running, _vco_q, _vco_fold_sent, _vco_fold_mod
+    global _vco_running, _vco_q, _vco_fold_sent, _vco_fold_mod, _vco_wave_due, _vco_sm
+    _vco_wave_due = None
+    _vco_sm = None
     if VCO_SYNTH is None:
         S["vco"]["on"] = 0
         toast("VCO", "NO FREE SYNTH", 1800)
@@ -2420,7 +2433,8 @@ def vco_start():
     refresh_buses()
     return True
 def vco_stop():
-    global _vco_running
+    global _vco_running, _vco_wave_due
+    _vco_wave_due = None
     if VCO_SYNTH is not None:
         try:
             amy.send(synth=VCO_SYNTH, vel=0)
@@ -2434,13 +2448,22 @@ def vco_apply_all():
     elif _vco_running:
         vco_stop()
 def vco_service():
-    global _vco_fold_mod, _vco_fold_next
+    global _vco_fold_mod, _vco_fold_next, _vco_wave_due, _vco_sm
     if not _vco_running:
         return
     v = S["vco"]
     try:
+        if _vco_wave_due is not None and since(_vco_wave_due) >= 0:
+            _vco_wave_due = None
+            _vco_send_wave()
+            amy.send(synth=VCO_SYNTH, note=69, vel=1)
         if _vco_quant():
             _vco_send_freq()
+        if v["src"] and not v["pm"] and v["sm"]:
+            r = cv_read(v["src"] - 1) * v["trk"] * 12.0
+            _vco_sm = r if _vco_sm is None else _vco_sm + VCO_SM_ALPHA[v["sm"]] * (r - _vco_sm)
+            if _vco_sm_sent is None or abs(_vco_sm - _vco_sm_sent) > 0.01:
+                _vco_send_freq()
         if v["mt"] == 2 and v["msrc"] and v["ft"] and DIST_OK:
             if since(_vco_fold_next) >= 0:
                 _vco_fold_next = time.ticks_add(now(), VCO_FOLD_MS)
@@ -2459,6 +2482,8 @@ def vco_pitch_now():
     if v["src"]:
         if v["pm"]:
             n += _vco_q or 0
+        elif v["sm"] and _vco_sm is not None:
+            n += _vco_sm
         else:
             n += cv_in_v[v["src"] - 1] * 12.0 * v["trk"]
     if v["msrc"] and v["mt"] == 0:
@@ -2476,6 +2501,8 @@ AIN_SYNTHS = None
 _ain_running = False
 _ain_gate = [False, False]
 _ain_meter = [0.0, 0.0]
+_ain_fade_due = None
+_ain_fade_fns = []
 _ain_clip = [None, None]
 def ain_init():
     global AIN_SYNTHS
@@ -2565,8 +2592,36 @@ def ain_start():
         return False
     refresh_buses()
     return True
+def ain_fade(fn):
+    global _ain_fade_due
+    if not _ain_running:
+        return
+    if _ain_fade_due is None:
+        for i in (0, 1):
+            if _ain_gate[i]:
+                amy.send(synth=AIN_SYNTHS[i], vel=0)
+    if fn not in _ain_fade_fns:
+        _ain_fade_fns.append(fn)
+    _ain_fade_due = time.ticks_add(now(), VCO_XFADE_MS)
+def ain_service():
+    global _ain_fade_due
+    if _ain_fade_due is None or since(_ain_fade_due) < 0:
+        return
+    _ain_fade_due = None
+    try:
+        for fn in _ain_fade_fns:
+            fn()
+        del _ain_fade_fns[:]
+        if _ain_running:
+            for i in (0, 1):
+                if _ain_gate[i]:
+                    amy.send(synth=AIN_SYNTHS[i], note=60, vel=1)
+    except Exception as e:
+        print("AUDIO IN FADE", e)
 def ain_stop():
-    global _ain_running
+    global _ain_running, _ain_fade_due
+    _ain_fade_due = None
+    del _ain_fade_fns[:]
     if AIN_SYNTHS is not None:
         for i in (0, 1):
             try:
@@ -5735,7 +5790,21 @@ P_VFIN = P("VCO FINE", rV("fine"), -100, 100, 1, "%+d", unit="ct", bip=True,
            apply=_vco_do(_vco_send_freq), key="vfin", short="VFIN")
 P_VTRK = P("V/OCT", rV("trk"), 0.95, 1.05, 0.001, "%.3f", apply=_vco_pitch_changed,
            vis=lambda: S["vco"]["src"] != 0)
-P_VWAV = P("WAVE", rV("wav"), kind=ENUM, opts=VCO_WAVE_NAMES, apply=_vco_do(_vco_send_wave))
+def _vco_wave_changed():
+    global _vco_wave_due
+    if not _vco_running:
+        return
+    if _vco_wave_due is None:
+        amy.send(synth=VCO_SYNTH, vel=0)
+    _vco_wave_due = time.ticks_add(now(), VCO_XFADE_MS)
+def _vco_sm_changed():
+    global _vco_sm, _vco_sm_sent
+    _vco_sm = None
+    _vco_sm_sent = None
+    _vco_pitch_changed()
+P_VWAV = P("WAVE", rV("wav"), kind=ENUM, opts=VCO_WAVE_NAMES, apply=_vco_wave_changed)
+P_VSM = P("SMOOTH", rV("sm"), kind=ENUM, opts=["OFF", "LIGHT", "STRONG"], apply=_vco_sm_changed,
+          vis=lambda: S["vco"]["src"] != 0 and S["vco"]["pm"] == 0)
 P_VPW = P("VCO PW", rV("pw"), 0.05, 0.95, 0.01, apply=_vco_do(_vco_send_duty),
           key="vpw", short="VPW", vis=lambda: S["vco"]["wav"] == 3)
 P_VSUB = P("VCO SUB", rV("sub"), 0.0, 1.0, 0.02, apply=_vco_do(_vco_send_mix),
@@ -5795,13 +5864,14 @@ P_APAN = P("IN PAN", rI("pan"), 0.0, 1.0, 0.02, bip=True, apply=_ain_do(_ain_sen
 P_AWID = P("WIDTH", rI("wid"), 0.0, 1.0, 0.05, apply=_ain_do(_ain_send_out),
            vis=lambda: S["ain"]["mode"] == 0)
 P_ABUS = P("BUS", rI("bus"), 0, 3, 1, "%d", apply=_ain_bus_changed)
-P_AFT = P("FILTER", rI("ft"), kind=ENUM, opts=SMP_FILT_NAMES, apply=_ain_do(_ain_send_filter))
+P_AFT = P("FILTER", rI("ft"), kind=ENUM, opts=SMP_FILT_NAMES,
+          apply=lambda: ain_fade(_ain_send_filter))
 P_ACU = P("IN CUTOFF", rI("cu"), 40.0, 16000.0, 1, fmtf=_hz, unit="Hz", log=True,
           apply=_ain_do(_ain_send_filter), key="icut", short="ICUT", vis=_ain_filt_on)
 P_ARS = P("IN RESO", rI("rs"), 0.5, 16.0, 0.1, "%.1f", apply=_ain_do(_ain_send_filter),
           key="ires", short="IRES", vis=_ain_filt_on)
 P_ADT = P("DISTORTION", rI("dt"), kind=ENUM, opts=DIST_TYPES,
-          apply=_ain_do(_ain_send_dist), vis=lambda: DIST_OK)
+          apply=lambda: ain_fade(_ain_send_dist), vis=lambda: DIST_OK)
 P_ADD = P("IN DRIVE", rI("dd"), DIST_DRIVE_MIN, DIST_DRIVE_MAX, 1, "%.1f", log=True,
           apply=_ain_do(_ain_send_dist), key="idrv", short="IDRV", vis=_ain_dist_on)
 P_ADM = P("DIST MIX", rI("dm"), 0.0, 1.0, 0.05, apply=_ain_do(_ain_send_dist),
@@ -7169,7 +7239,7 @@ def _vco_info():
         return "MISSING"
     return "ON" if _vco_running else "OFF"
 def vco_items():
-    return [P_VON, P_VSRC, P_VPM, P_VSC, P_VROOT, P_VFIN, P_VTRK,
+    return [P_VON, P_VSRC, P_VPM, P_VSC, P_VSM, P_VROOT, P_VFIN, P_VTRK,
             P_VWAV, P_VPW, P_VSUB, P_VSO, P_VO2, P_VIV, P_VDET,
             P_VMSRC, P_VMT, P_VMD, P_VFT, P_VFD, P_VFM,
             P_VLVL, P_VPAN, P_VBUS]
@@ -8691,6 +8761,7 @@ def service_misc():
     cvmod_service()
     cvfold_service()
     vco_service()
+    ain_service()
     smp_service()
     if S["m5"] and enc is not None:
         try:

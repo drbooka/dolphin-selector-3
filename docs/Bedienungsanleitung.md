@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Bedienungsanleitung
 
-Version 13.26 · Stand 27.10.2026 · AMYboard im Eurorack-Case
+Version 13.27 · Stand 27.10.2026 · AMYboard im Eurorack-Case
 
 ---
 
@@ -151,7 +151,7 @@ SPIELEN (Startseite)
     │   ├─ CV MOD OUT1 · CV MOD OUT2 (AUS/LFO/ENV)
     │   ├─ CV LFO ─► WELLE · RATE · TIEFE · FOLD · LFO DRIVE · FOLD MIX · FOLD MOD · MOD TIEFE
     │   ├─ CV ENV ─► ATTACK · RELEASE · TIEFE · FOLD · ENV DRIVE · FOLD MIX
-    │   ├─ VCO ─► VCO · 1V/OKT IN · TONHOEHE (FREI/QUANT) · SKALA · GRUNDTON 0V · VCO FEIN · V/OKT
+    │   ├─ VCO ─► VCO · 1V/OKT IN · TONHOEHE (FREI/QUANT) · SKALA · GLAETTUNG · GRUNDTON 0V · VCO FEIN · V/OKT
     │   │        WELLE · VCO PW · VCO SUB · SUB OKTAVE · VCO OSZ 2 · INTERVALL · VCO DETUNE
     │   │        MOD IN · MOD ZIEL (FM/PWM/FOLD) · VCO MOD · FOLD · VCO DRIVE · FOLD MIX
     │   │        VCO LEVEL · PAN · BUS
@@ -355,10 +355,11 @@ Eine Karte mit vier Ecken erzeugt die Drum-Patterns. X und Y mischen stufenlos z
 | **VCO** | AN/AUS |
 | **1V/OKT IN** | AUS · IN1 · IN2: welcher Eingang die Tonhöhe steuert |
 | **TONHOEHE** | FREI = stufenlos (AMY rechnet die Spannung selbst, ohne Python) · QUANT = auf die SKALA gerastet |
+| **GLAETTUNG** | nur bei FREI (v13.27): AUS · LEICHT · STARK. Glättet das Zittern des CV-Eingangs; die Tonhöhe rechnet dann Python (ca. alle 30 ms) statt AMY. LEICHT folgt Sprüngen in ca. 60 ms, STARK in ca. 200 ms – für Sequenzen AUS oder LEICHT, für gehaltene Töne und Drones STARK |
 | **GRUNDTON 0V** | Note bei 0 V (Werk C1, wie MIDI>CV) |
 | **VCO FEIN** | ±100 Cent |
 | **V/OKT** | Tracking-Abgleich 0.950–1.050, falls Oktaven nicht sauber sitzen |
-| **WELLE** | SIN · TRI · SAW · PULS; **VCO PW** = Pulsbreite (nur PULS) |
+| **WELLE** | SIN · TRI · SAW · PULS; **VCO PW** = Pulsbreite (nur PULS). Der Wechsel blendet kurz aus und wieder ein (ca. 65 ms, v13.27), damit es nicht knackt |
 | **VCO SUB** | Pegel des Sub-Oszillators (Rechteck), **SUB OKTAVE** −1 oder −2 |
 | **VCO OSZ 2** | Pegel eines zweiten Oszillators mit gleicher Welle; **INTERVALL** ±24 Halbtöne, **VCO DETUNE** 0–50 Cent (Schwebung) |
 | **MOD IN** | AUS · IN1 · IN2: zweiter CV-Eingang zur Modulation |
@@ -384,7 +385,7 @@ Eine Karte mit vier Ecken erzeugt die Drum-Patterns. X und Y mischen stufenlos z
 | **IN PAN · BREITE** | Position; BREITE (nur STEREO) 1 = volle Stereobreite, 0 = beide Seiten auf IN PAN |
 | **BUS** | Effekt-Bus (ab Werk 2, damit Synths und Drums ihre eigenen Effekte behalten) |
 | **BUS-EFFEKTE** | öffnet EFFEKTE direkt für den Bus des Eingangs |
-| **FILTER · IN CUTOFF · IN RESO** | AUS · TP · BP · HP · TP24 (· NOTCH · PHASER), wie bei den Sample-Slots |
+| **FILTER · IN CUTOFF · IN RESO** | AUS · TP · BP · HP · TP24 (· NOTCH · PHASER), wie bei den Sample-Slots. Beim Wechsel des Typs (auch bei DISTORTION) blendet der Eingang ca. 65 ms aus und wieder ein (v13.27), damit es nicht knackt |
 | **DISTORTION · IN DRIVE · DIST MIX** | CLIP/FOLD vor dem Filter |
 
 - **Pegelanzeige** oben: L und R des Eingangs (vor IN GAIN) mit Marken bei −24/−12/−6 dB, Spitzenwert rechts, **CLIP** bei Übersteuerung. Sie läuft auch bei AUS – so lässt sich der Pegel vor dem Einschalten prüfen. Darunter: Modus (ST/MO/L/R), Bus, Filter, Distortion.

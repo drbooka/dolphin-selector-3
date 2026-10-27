@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Projektbeschreibung
 
-Stand 27.10.2026 · Sketch-Version 13.26 (13.18 auf der Hardware bestätigt, dazu Start von v13.24, AUDIO IN, VCO und IN-Kalibrierung)
+Stand 27.10.2026 · Sketch-Version 13.27 (13.18 auf der Hardware bestätigt, dazu Start von v13.24, AUDIO IN, VCO und IN-Kalibrierung)
 
 ## Ziel
 
@@ -85,6 +85,7 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 | 13.24 | 26.10.2026 | Encoder-Menü neu: Übersicht nach Gerät mit Sprung per Drehen, Encoder-Seite mit FUNKTION (AUS/SEITE/PATCH/KANAL/PARAMETER), PATCH für K1–K16 oder AKTUELL mit LISTE und LADEN SOFORT/AUF DRUCK, Parameter in Gruppen, LED-Farbe je Encoder (AUTO/fest), Encoder-Sets A/B/C |
 | 13.25 | 26.10.2026 | Kalibrierung der CV-Eingänge (IN1/IN2 OFFSET/SKALA) mit Auto-Abgleich über OUT1, wirkt auch auf VCO und GATE+PITCH im AMY-Weg |
 | 13.26 | 27.10.2026 | MIDI-Monitor unter SETUP › MIDI (letzte 8 Ereignisse mit Aktion des Sketches) |
+| 13.27 | 27.10.2026 | Weiches Umschalten (Aus-/Einblenden) bei VCO-WELLE und AUDIO-IN-Filter-/Distortion-Typ, VCO › GLAETTUNG für TONHOEHE FREI |
 
 ## Offene Punkte (auf der Hardware zu prüfen)
 
@@ -96,8 +97,8 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 6. ~~Grids per CV: Stimmt die Richtung an CV IN 1/2?~~ – am 27.10.2026 bestätigt (X und Y).
 7. ~~**Kalibrierung**~~ – erledigt: Am 26.10.2026 OUT1 mit Multimeter kalibriert (OFFSET −0,312 V, SKALA 0,984 – der Ausgang lag ab Werk 0,3 V zu hoch). Auto-Abgleich (v13.25): IN1 OFFSET +0,169 V / SKALA 1,011, IN2 +0,15 V / 1,010 (gleicher Bauteil-Versatz). OUT2 am 27.10.2026 mit zwei Punkten kalibriert: OFFSET 0,000 V, SKALA 0,942 (gab ab Werk ca. 6 % zu viel aus). Ein defektes Patchkabel hatte zuerst einen toten Eingang vorgetäuscht.
 8. ~~**EQ nach Firmware-Update**~~ – am 27.10.2026 geprüft: PUNCH-Profil auf dem Drum-Bus klingt weiterhin passend, keine Änderung nötig.
-9. ~~**VCO (v13.21)**~~ – **am 26.10.2026 auf der Hardware bestätigt:** Klang, SUB, OSZ 2, Pegel (sauber auch mit beiden auf 1.0), Tracking nach IN1-Abgleich ohne Steigungsfehler (Rest −12 ct → VCO FEIN +12, Streuung ±8 ct durch Zittern des CV-Eingangs), QUANT mit CHROM/MAJOR sauber und ohne Flattern. Rest: Knacken beim Wechsel der WELLE; Zittern im Modus FREI (evtl. Glättung als Option). MOD IN mit FM, PWM und FOLD bestätigt.
-10. ~~**AUDIO IN (v13.22)**~~ – **am 26.10.2026 auf der Hardware bestätigt** (mit v13.24): Pegelanzeige, Durchlauf, Stereo, Filter, Distortion, Bus-Effekte, Rauschen, Latenz und Ein/Aus in Ordnung. Rest: leichtes Knacken beim Umschalten des Filtertyps.
+9. ~~**VCO (v13.21)**~~ – **am 26.10.2026 auf der Hardware bestätigt:** Klang, SUB, OSZ 2, Pegel (sauber auch mit beiden auf 1.0), Tracking nach IN1-Abgleich ohne Steigungsfehler (Rest −12 ct → VCO FEIN +12, Streuung ±8 ct durch Zittern des CV-Eingangs), QUANT mit CHROM/MAJOR sauber und ohne Flattern. Rest: Knacken beim Wechsel der WELLE; Zittern im Modus FREI – beides in v13.27 angegangen (Aus-/Einblenden, GLAETTUNG), auf der Hardware noch zu prüfen. MOD IN mit FM, PWM und FOLD bestätigt.
+10. ~~**AUDIO IN (v13.22)**~~ – **am 26.10.2026 auf der Hardware bestätigt** (mit v13.24): Pegelanzeige, Durchlauf, Stereo, Filter, Distortion, Bus-Effekte, Rauschen, Latenz und Ein/Aus in Ordnung. Rest: leichtes Knacken beim Umschalten des Filtertyps – in v13.27 mit Aus-/Einblenden angegangen, auf der Hardware noch zu prüfen.
 
 11. **Wavefolder CV LFO (v13.20):** am 26.10.2026 bestätigt, dass AMY auch am CV-Ausgang faltet (über VCO-FM hörbar: mehrere Buckel pro Durchgang). FOLD MOD per CV IN1 und ENV mit FOLD ebenfalls bestätigt. Offen (optional): Spitzenpegel bei TIEFE 1.0 + DRIVE mit dem Multimeter.
 
