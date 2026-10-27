@@ -88,8 +88,8 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 
 ## Offene Punkte (auf der Hardware zu prüfen)
 
-1. 303: Starten die Hüllkurven beim Slide neu?
-2. Klingt der Swing bei 1/16 wie erwartet?
+1. ~~303: Starten die Hüllkurven beim Slide neu?~~ – am 27.10.2026 bestätigt: Slide gleitet ohne neuen Anschlag.
+2. ~~Klingt der Swing bei 1/16 wie erwartet?~~ – am 27.10.2026 bestätigt (60 % und 75 %).
 3. MIDI>CV nutzt die Software-Variante; ob die Firmware `note_output` CV_GATE mit dem CV-Hook verbindet, ist offen (`NOTE_OUTPUT_CV_NATIVE`).
 4. Joystick: Stimmt die Richtung hoch/runter? Sonst `JOY_Y_INVERT = True`.
 5. Drum-Trigger: Reicht ein Gate von 1/32 für die A-140-2v?
@@ -101,7 +101,7 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 
 11. **Wavefolder CV LFO (v13.20):** am 26.10.2026 bestätigt, dass AMY auch am CV-Ausgang faltet (über VCO-FM hörbar: mehrere Buckel pro Durchgang). FOLD MOD per CV IN1 und ENV mit FOLD ebenfalls bestätigt. Offen (optional): Spitzenpegel bei TIEFE 1.0 + DRIVE mit dem Multimeter.
 
-12. **DX7 VON SD (v13.19):** am 26.10.2026 bestätigt – INFO DX7 SD = JA, Stimmen klingen richtig, Wechsel ohne Stocken, SD-Stimme nach Neustart wieder geladen.
+12. **DX7 VON SD (v13.19):** am 26.10.2026 bestätigt – INFO DX7 SD = JA, Stimmen klingen richtig, Wechsel ohne Stocken, SD-Stimme nach Neustart wieder geladen. Bedienung: kein hörbares Holpern beim schnellen Drehen, BEDIENUNG MAX 132 ms (unter den 250 ms Vorlauf).
 13. **Encoder-Menü (v13.24):** am 26.10.2026 mit dem M5Stack bestätigt – Übersicht, Sprung per Drehen, PATCH für beliebigen Kanal, LADEN AUF DRUCK mit Taster, LED-Farben am richtigen Encoder, Sets A/B. Offen: Quad-Teile (LEDs, Q1–Q8), sobald der Ersatz-Quad da ist.
 14. ~~**Pads/Slices über MIDI (v13.19)**~~ – **am 27.10.2026 bestätigt:** Pads (Noten 36–43) und Slices (44+) auf dem PAD-KANAL funktionieren. Die erste Fehlmeldung lag an der Verkabelung; der MIDI-MONITOR (v13.26) bleibt zur Fehlersuche.
 
