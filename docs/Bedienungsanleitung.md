@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Bedienungsanleitung
 
-Version 13.25 · Stand 26.10.2026 · AMYboard im Eurorack-Case
+Version 13.26 · Stand 27.10.2026 · AMYboard im Eurorack-Case
 
 ---
 
@@ -186,7 +186,7 @@ SPIELEN (Startseite)
     │   └─ SAMPLE-RAM · PADS (Anzeigen)
     │
     └─ SETUP
-        ├─ MIDI ─► MIDI THRU · MIDI OUT TYP (A/B) · CLOCK · RST ALL MIDI
+        ├─ MIDI ─► MIDI THRU · MIDI OUT TYP (A/B) · CLOCK · MONITOR · RST ALL MIDI
         ├─ ENCODER ─► GERAETE · SET (A/B/C) · DREHRICHTUNG · E1–E8 · Q1–Q8 (nur angeschlossene) · I2C-SCAN
         │   └─ Ex/Qx ─► FUNKTION · KANAL · LISTE · LADEN · GRUPPE · WERT · JETZT · TASTER · LED
         ├─ MAKROS ─► MAKRO 1–4
@@ -465,6 +465,7 @@ Der Sampler hat **8 Slots** (S1–S8). Ein Slot zeigt auf eine WAV-Datei auf der
 
 ### SETUP
 - **RST ALL MIDI** entfernt die Patches von allen Kanälen.
+- **MIDI › MONITOR** zeigt die letzten 8 MIDI-Ereignisse, die beim Sketch ankommen, neuestes oben: Kanal, Art (`N` Note, `CC`, `PC`) mit Nummer und rechts, was der Sketch damit gemacht hat – `PAD S1`, `SLICE 3`, `KANAL 1` oder ein Grund wie `S2 LEER`, `S1 KEINE SLICE`. Oben rechts zählt alle empfangenen Nachrichten (auch Clock). Druck leert die Liste.
 - **ENCODER:** **GERAETE** zeigt die erkannten Zusatz-Geräte (z. B. `M5+2QUAD`). **I2C-SCAN** listet jedes Gerät am Bus mit Adresse, erkanntem Typ und Seesaw-Produktnummer (P5752 = Quad). Fehlt ein Encoder im Menü, zeigt diese Liste, ob er überhaupt antwortet und als was er erkannt wird. Dazu SET, DREHRICHTUNG und die Übersicht aller angeschlossenen Encoder E1–E8 und Q1–Q8 (siehe Abschnitt 1).
 - **FAILSAFE** begrenzt die Rechenlast. Bei Überlast werden Stimmen abgeschaltet statt zu knacken.
 - **DISPLAY:** **HELLIGKEIT** (Kontrast), **SCHONER NACH** (dimmt nach 1–30 min ohne Eingabe; die erste Eingabe weckt nur), **UPDATE** BAENDER = nur geänderte Bildteile senden (schont den Takt), VOLL = immer das ganze Bild (falls das Bild fehlerhaft ist).

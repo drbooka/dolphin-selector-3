@@ -1,6 +1,6 @@
 # ================================================================
 # DOLPHIN SELECTOR 3  -  AMYboard Eurorack Synth  -  sketch.py
-# Version 13.25 (26.10.2026) - Kalibrierung der CV-Eingaenge mit Auto-Abgleich
+# Version 13.26 (27.10.2026) - MIDI-Monitor
 # ================================================================
 #
 # Hardware (unveraendert):
@@ -66,6 +66,13 @@
 # ZUSTAND: /sd/dolphin_state.json (sonst Flash). Beim ersten Start
 # werden die Dateien von v11 (amyboard_state*.txt) uebernommen und
 # NICHT geloescht. Szenen: dolphin_scenes.json.
+#
+# NEU IN v13.26:
+#   - SETUP > MIDI > MONITOR: die letzten 8 MIDI-Ereignisse, die beim
+#     Sketch ankommen (Kanal, Note/CC/PC, Wert) und was der Sketch damit
+#     gemacht hat (PAD S1, SLICE 3, KANAL, KEINE SLICES, SLOT AUS ...).
+#     Dazu die Zahl aller empfangenen Nachrichten (auch Clock). Zur
+#     Fehlersuche, z. B. wenn Pads oder Slices nicht reagieren.
 #
 # NEU IN v13.25:
 #   - KALIBRIERUNG fuer CV IN1/IN2: IN1/IN2 OFFSET und SKALA (gemessen =
@@ -440,7 +447,7 @@ try:
 except Exception:
     _random = None
 
-VERSION = "13.25"
+VERSION = "13.26"
 
 
 # ================================================================
@@ -6517,8 +6524,22 @@ def chord_notes(ch, note, vel, on):
             amy.send(synth=ch, note=n, vel=v)
 
 
+MIDI_LOG_N = 8
+_midi_log = []            # (Kanal, Art, Nummer, Wert, Aktion), neuestes zuletzt
+_midi_count = [0]
+
+
+def _mlog(ch, kind, num, val, act):
+    _midi_log.append((ch, kind, num, val, act))
+    if len(_midi_log) > MIDI_LOG_N:
+        _midi_log.pop(0)
+    if STACK and isinstance(STACK[-1], MidiMonitorPage):
+        mark_dirty()
+
+
 def midi_dispatch(m):
     global _learned, _learn_armed
+    _midi_count[0] += 1
     try:
         if S["thru"] and tulip is not None:
             tulip.midi_out(m)
@@ -6541,19 +6562,27 @@ def midi_dispatch(m):
             if ch == S["sb"]["pch"] and SMP_PAD_NOTE0 <= note < SMP_PAD_NOTE0 + SMP_SLOTS:
                 pk = note - SMP_PAD_NOTE0
                 if on:
-                    slot_play(pk, m[2] / 127.0)
+                    ok = slot_play(pk, m[2] / 127.0)
+                    _mlog(ch, "N", note, m[2], ("PAD S%d" % (pk + 1)) if ok else
+                          ("S%d %s" % (pk + 1, _slot_state(pk)[:6])))
                 elif slot(pk)["pm"]:
                     slot_stop(pk)
                 return
             if (ch == S["sb"]["pch"] and SMP_SLICE_NOTE0 <= note < SMP_SLICE_NOTE0 + 16):
                 k = S["sb"]["ss"]
                 pc = note - SMP_SLICE_NOTE0
+                if on and pc >= slot_chops(k):
+                    _mlog(ch, "N", note, m[2], "S%d KEINE SLICE" % (k + 1))
                 if pc < slot_chops(k):
                     if on:
-                        slice_play_now(k, pc, m[2] / 127.0)
+                        ok = slice_play_now(k, pc, m[2] / 127.0)
+                        _mlog(ch, "N", note, m[2], ("SLICE %d" % (pc + 1)) if ok else
+                              ("S%d %s" % (k + 1, _slot_state(k)[:6])))
                     elif slot(k)["pm"] == 1:
                         slot_stop(k)              # GATE: Loslassen stoppt
                 return
+            if on:
+                _mlog(ch, "N", note, m[2], "%s %d" % ("KANAL", ch))
             if S["chord"][ch]:
                 chord_notes(ch, note, m[2], on)
             if midicv_active_for(ch):
@@ -6562,12 +6591,14 @@ def midi_dispatch(m):
             if ch == S["cur"] and 2 in S["cvsrc"]:
                 cvmod_env_note(on)
         elif typ == 0xB0:
+            _mlog(ch, "CC", m[1], m[2] if len(m) > 2 else 0, "")
             if m[1] == 0 and len(m) > 2:
                 _bank_msb[ch] = m[2]
             if _learn_armed:
                 _learn_armed = False
                 _learned = (ch, m[1], S["cct"])
         elif typ == 0xC0:
+            _mlog(ch, "PC", m[1], 0, "")
             pc_sync(ch, m[1])
     except Exception as e:
         print("MIDI", e)
@@ -10663,8 +10694,41 @@ def _rst_midi():
                  lambda: (reset_all_midi(), toast("MIDI", "ALLE ENTFERNT"))))
 
 
+class MidiMonitorPage(Page):
+    # v13.26: letzte MIDI-Ereignisse, neuestes oben
+    def __init__(self):
+        self._n = None
+
+    def tick(self):
+        k = (_midi_count[0], len(_midi_log))
+        if k != self._n:
+            self._n = k
+            return True
+        return False
+
+    def press(self):
+        del _midi_log[:]
+        _midi_count[0] = 0
+        mark_dirty()
+
+    def draw(self):
+        draw_title("MIDI MONITOR", "%d" % min(_midi_count[0], 99999))
+        if not _midi_log:
+            TC("WARTE AUF MIDI", 64, 56, MID)
+            TC("PAD-KANAL %s" % (("%d" % S["sb"]["pch"]) if S["sb"]["pch"] else "AUS"), 64, 72, DIM)
+        y = 28
+        for ch, kind, num, val, act in reversed(_midi_log):
+            T("K%-2d%s%-3d" % (ch, kind, num), 1, y, W if y == 28 else MID)
+            TR(act[:8], 127, y, HI if y == 28 else LO)
+            y += 11
+        TC("DRUECKEN=LEEREN", 64, 118, DIM)
+
+
 def midi_setup_page():
-    return ListPage("MIDI", [P_THRU, P_MTYPE, P_CLOCK, action("RST ALL MIDI", _rst_midi)])
+    return ListPage("MIDI", [P_THRU, P_MTYPE, P_CLOCK,
+                             link("MONITOR", lambda: MidiMonitorPage(),
+                                  info=lambda: "%d" % min(_midi_count[0], 9999)),
+                             action("RST ALL MIDI", _rst_midi)])
 
 
 def encb_page():

@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Projektbeschreibung
 
-Stand 26.10.2026 · Sketch-Version 13.25 (13.18 auf der Hardware bestätigt, dazu Start von v13.24, AUDIO IN, VCO und IN-Kalibrierung)
+Stand 27.10.2026 · Sketch-Version 13.26 (13.18 auf der Hardware bestätigt, dazu Start von v13.24, AUDIO IN, VCO und IN-Kalibrierung)
 
 ## Ziel
 
@@ -84,6 +84,7 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 | 13.23 | 25.10.2026 | I2C-SCAN unter SETUP › ENCODER und INFO › I2C: Adresse, erkannter Typ, Seesaw-Produktnummer (Fehlersuche Quad) |
 | 13.24 | 26.10.2026 | Encoder-Menü neu: Übersicht nach Gerät mit Sprung per Drehen, Encoder-Seite mit FUNKTION (AUS/SEITE/PATCH/KANAL/PARAMETER), PATCH für K1–K16 oder AKTUELL mit LISTE und LADEN SOFORT/AUF DRUCK, Parameter in Gruppen, LED-Farbe je Encoder (AUTO/fest), Encoder-Sets A/B/C |
 | 13.25 | 26.10.2026 | Kalibrierung der CV-Eingänge (IN1/IN2 OFFSET/SKALA) mit Auto-Abgleich über OUT1, wirkt auch auf VCO und GATE+PITCH im AMY-Weg |
+| 13.26 | 27.10.2026 | MIDI-Monitor unter SETUP › MIDI (letzte 8 Ereignisse mit Aktion des Sketches) |
 
 ## Offene Punkte (auf der Hardware zu prüfen)
 
@@ -102,6 +103,7 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 
 12. **DX7 VON SD (v13.19):** am 26.10.2026 bestätigt – INFO DX7 SD = JA, Stimmen klingen richtig, Wechsel ohne Stocken, SD-Stimme nach Neustart wieder geladen.
 13. **Encoder-Menü (v13.24):** am 26.10.2026 mit dem M5Stack bestätigt – Übersicht, Sprung per Drehen, PATCH für beliebigen Kanal, LADEN AUF DRUCK mit Taster, LED-Farben am richtigen Encoder, Sets A/B. Offen: Quad-Teile (LEDs, Q1–Q8), sobald der Ersatz-Quad da ist.
+14. **Pads/Slices über MIDI (v13.19):** am 27.10.2026 auf der Hardware **ohne Reaktion** – auch die Pads (Noten 36–43) auf dem PAD-KANAL 11 bleiben stumm, obwohl der Slot spielt (ANHOEREN), PADS 8/8 und der KeyStep laut anderer Software richtig sendet. In der Simulation funktioniert der Weg. Nächster Schritt: MIDI-MONITOR (v13.26) zeigt, ob und wie die Noten ankommen.
 
 ## Stand der Firmware-Neuerungen (Discord #announcements bis 12.09.2026, GitHub bis v1.2.200)
 
