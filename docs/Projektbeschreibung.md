@@ -103,7 +103,7 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 
 12. **DX7 VON SD (v13.19):** am 26.10.2026 bestätigt – INFO DX7 SD = JA, Stimmen klingen richtig, Wechsel ohne Stocken, SD-Stimme nach Neustart wieder geladen.
 13. **Encoder-Menü (v13.24):** am 26.10.2026 mit dem M5Stack bestätigt – Übersicht, Sprung per Drehen, PATCH für beliebigen Kanal, LADEN AUF DRUCK mit Taster, LED-Farben am richtigen Encoder, Sets A/B. Offen: Quad-Teile (LEDs, Q1–Q8), sobald der Ersatz-Quad da ist.
-14. **Pads/Slices über MIDI (v13.19):** am 27.10.2026 auf der Hardware **ohne Reaktion** – auch die Pads (Noten 36–43) auf dem PAD-KANAL 11 bleiben stumm, obwohl der Slot spielt (ANHOEREN), PADS 8/8 und der KeyStep laut anderer Software richtig sendet. In der Simulation funktioniert der Weg. Nächster Schritt: MIDI-MONITOR (v13.26) zeigt, ob und wie die Noten ankommen.
+14. ~~**Pads/Slices über MIDI (v13.19)**~~ – **am 27.10.2026 bestätigt:** Pads (Noten 36–43) und Slices (44+) auf dem PAD-KANAL funktionieren. Die erste Fehlmeldung lag an der Verkabelung; der MIDI-MONITOR (v13.26) bleibt zur Fehlersuche.
 
 ## Stand der Firmware-Neuerungen (Discord #announcements bis 12.09.2026, GitHub bis v1.2.200)
 
