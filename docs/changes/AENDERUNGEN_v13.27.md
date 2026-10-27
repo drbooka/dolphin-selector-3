@@ -27,7 +27,11 @@ Anlass: Beim Hardware-Test am 26.10.2026 knackte es leicht beim Wechsel der VCO-
 - Neue Tests für Ausblenden, Verzögerung, einmaliges Ausblenden beim schnellen Drehen, Stopp während des Ausblendens, Glättung (Zeitkonstanten, Schwelle, Anzeige, Speichern).
 - Die bisherigen Tests (AUDIO IN, Encoder, Kalibrierung) laufen in beiden Sprachfassungen fehlerfrei.
 
-## Auf der Hardware zu prüfen
+## Hardware-Test 27.10.2026
+
+Bestätigt: WELLE und AUDIO-IN-Filter-/Distortion-Typ wechseln ohne Knacken, GLAETTUNG beruhigt die Tonhöhe im Modus FREI.
+
+## Geprüft wurde
 
 1. VCO läuft, WELLE durchdrehen: Knackt es noch? Ist die kurze Lücke störend?
 2. AUDIO IN mit Signal, FILTER-Typ und DISTORTION-Typ wechseln: knackfrei?
