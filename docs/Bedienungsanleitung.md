@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Bedienungsanleitung
 
-Version 13.27 · Stand 27.10.2026 · AMYboard im Eurorack-Case
+Version 13.28 · Stand 27.10.2026 · AMYboard im Eurorack-Case
 
 ---
 
@@ -355,7 +355,7 @@ Eine Karte mit vier Ecken erzeugt die Drum-Patterns. X und Y mischen stufenlos z
 | **VCO** | AN/AUS |
 | **1V/OKT IN** | AUS · IN1 · IN2: welcher Eingang die Tonhöhe steuert |
 | **TONHOEHE** | FREI = stufenlos (AMY rechnet die Spannung selbst, ohne Python) · QUANT = auf die SKALA gerastet |
-| **GLAETTUNG** | nur bei FREI (v13.27): AUS · LEICHT · STARK. Glättet das Zittern des CV-Eingangs; die Tonhöhe rechnet dann Python (ca. alle 30 ms) statt AMY. LEICHT folgt Sprüngen in ca. 60 ms, STARK in ca. 200 ms – für Sequenzen AUS oder LEICHT, für gehaltene Töne und Drones STARK |
+| **GLAETTUNG** | nur bei FREI (v13.27): AUS · WENIG · STARK. Glättet das Zittern des CV-Eingangs; die Tonhöhe rechnet dann Python (ca. alle 30 ms) statt AMY. WENIG folgt Sprüngen in ca. 60 ms, STARK in ca. 200 ms – für Sequenzen AUS oder WENIG, für gehaltene Töne und Drones STARK |
 | **GRUNDTON 0V** | Note bei 0 V (Werk C1, wie MIDI>CV) |
 | **VCO FEIN** | ±100 Cent |
 | **V/OKT** | Tracking-Abgleich 0.950–1.050, falls Oktaven nicht sauber sitzen |
@@ -545,6 +545,186 @@ Hängt der Ton: auf SPIELEN 2 s halten (PANIC).
 
 ---
 
-## 6. Hinweise zur Sketch-Datei
+## 6. Tipps und Tricks
+
+### Bedienung
+- **Kanal wechseln von überall:** Encoder gedrückt halten und drehen. Du musst dafür nicht zurück auf SPIELEN.
+- **Lang drücken heißt „zurück wie vorher“:** Im großen Ring, bei Auswahlwerten und im Patch-Browser stellt ein langer Druck den alten Wert wieder her. So kannst du gefahrlos durchhören.
+- **Die vier Makros** auf SPIELEN sind die schnellsten Regler. Lege unter SETUP › MAKROS die vier Werte drauf, die du im Stück am meisten brauchst, z. B. Cutoff, 303 DRIVE, Reverb und MORPH A>B.
+- **PANIC** (2 s auf SPIELEN) stoppt alle Noten und den Sequencer. VCO und AUDIO IN laufen absichtlich weiter. Zum Stummschalten nimmst du deren Schalter AN/AUS.
+
+![Startseite SPIELEN mit Patch, Makros und Lauflicht](img/de/screen_home.png)
+
+### Zusatz-Encoder live
+- **Zwei Encoder-Sets anlegen:**
+  - **Set A für den Auftritt:** PATCH mit LADEN AUF DRUCK, die Taster auf MUTE K1–K4, START/STOP und TAP TEMPO.
+  - **Set B zum Klangschrauben:** PARAMETER wie Cutoff, Reso, 303 DRIVE und Reverb.
+  - Ein Taster mit **ENC-SET >** schaltet zwischen den Sets um.
+- **LADEN AUF DRUCK:** Wähle den nächsten Patch schon während des Takts vor und drücke genau auf die Eins. So landet der Wechsel im Takt.
+- **LED-Farben:** AUTO zeigt die Funktion. Feste Farben helfen, wenn du Encoder nach Kanälen ordnest, z. B. alle Bass-Regler rot.
+- **MORPH A>B** auf einen Encoder legen (Gruppe SEQ+SZENE). Speichere Szene A als ruhigen Teil und Szene B als Höhepunkt, dann drehst du den Übergang von Hand.
+
+![SETUP › ENCODER mit Geräten, Set und Belegung](img/de/screen_encoder.png)
+
+### Drums und Sequencer
+- **Polymetrik:** Gib einzelnen Instrumenten eine andere LAENGE. Die HiHat mit 12 oder 7 gegen die Bassdrum mit 16 klingt lebendig, ohne dass du ein Pattern programmierst.
+- **EUCLID SETZEN:**
+  - 4 Schläge auf 16 sind die gerade Bassdrum.
+  - 5/16, 7/16 oder 3/8 klingen nach Clave und Afro-Groove.
+  - Kombiniere das mit LAENGE für wandernde Muster.
+- **GRIDS als Ideengeber:**
+  - Stell MODUS auf LIVE und such mit E1 (X) und E2 (Y) ein Muster.
+  - Gefällt es, hält **IN PATTERN SCHR.** es fest. Danach kannst du es Step für Step verfeinern.
+- **Variationen:**
+  - Pattern A fertig bauen, **KOPIE > NAECHST.** kopiert es nach B, dort änderst du nur ein paar Steps.
+  - Der Wechsel A→B kommt immer zum Ende des Durchlaufs, also taktgenau.
+- **303:**
+  - Starte mit dem ACID-GENERATOR. **MUTIEREN** ändert nur 3 Steps, so entwickelt sich die Linie, ohne ihren Charakter zu verlieren.
+  - DISTORTION CLIP sitzt vor dem Filter. Mit hoher RESO und ENV MOD entsteht der klassische verzerrte Acid-Sound.
+  - Mit dem Joystick findest du live einen Klang, der **Joystick-Knopf** übernimmt ihn als neue Grundwerte.
+
+![Drum-Raster und GRIDS im Modus LIVE](img/de/screen_grids_live.png)
+
+### Sampler
+- **Einen Break neu zusammensetzen:**
+  1. Loop mit genau 1 Takt laden.
+  2. SLICES 8 und TAKT-SYNC 1 TAKT einstellen.
+  3. **AUF DRUMS VERTEILEN** drücken.
+  - Die Drum-Spur spielt jetzt den Loop wie das Original. Du stellst die Steps um, und das Tempo bleibt frei wählbar.
+- **Resampling:** AUFNAHME mit QUELLE MIX, EINHEIT TAKTE und START TAKT 1. Damit nimmst du einen Durchlauf des Sequencers taktgenau auf, und der neue Slot ist sofort im Tempo.
+- **KeyStep Pro als Pad-Controller:** Eine Drum-Spur des KeyStep auf den PAD-KANAL stellen.
+  - Die Noten 36–43 spielen die Slots.
+  - Ab Note 44 spielen sie die Slices des SLICE-SLOT.
+  - Kommt nichts an, zeigt SETUP › MIDI › MONITOR den Grund.
+
+### Effekte und Rechenlast
+- **Busse planen:** 0 = Synths, 1 = Drums und Pads, 2 = AUDIO IN, 3 = frei, z. B. für den VCO (VCO › BUS 3). So hat jede Gruppe ihren eigenen Hall, ihr eigenes Echo und ihre eigene Verzerrung.
+- **Drums dichter:** Auf Bus 1 DISTORTION CLIP mit BUS DRIVE 2–4 einstellen.
+- **Juno-Patches klingen dünn?** Lass PATCH-FX auf dem Bus AN, denn Chorus und EQ gehören zum Juno-Klang.
+- **Rechenlast:**
+  - Eine Juno-Stimme kostet etwa 12 %, eine DX7-Stimme etwa 8 %, ein Drum-Schlag etwa 2 %.
+  - Slots mit TAKT-SYNC kosten das 2,5-Fache.
+  - Oben rechts im MIXER steht der Stimmenverbrauch. Lieber Stimmen pro Kanal begrenzen als FAILSAFE auslösen lassen.
+
+### Modular
+- **Erst kalibrieren** (MODULAR › KALIBRIERUNG): zuerst die Ausgänge mit dem Multimeter, dann die Eingänge per ABGLEICH. VCO, QUANTIZE, MIDI>CV und GATE+PITCH bauen alle darauf auf.
+- **Spannungsbereiche:**
+  - Die Eingänge messen etwa −10 bis +6,3 V, das sind rund 6 Oktaven über C1.
+  - Die Ausgänge geben −10 bis +10 V aus.
+- **Wer belegt welchen Ausgang?**
+
+  | Modus | Belegt |
+  |---|---|
+  | QUANTIZE und CV1>OUT1 | nur OUT1 |
+  | CV2>OUT2 | nur OUT2 |
+  | MIDI>CV und 303>CV | beide Ausgänge |
+
+  Ein freier Ausgang kann CV MOD (LFO/ENV) oder einen Drum-Trigger ausgeben.
+- **Der CV-Monitor** oben auf MODULAR verrät Kabelfehler. Bleibt ein Wert beim Umstecken stehen, kommt kein Signal an.
+- **VCO für Drones:** GLAETTUNG STARK, dazu VCO OSZ 2 mit INTERVALL +7 und etwas DETUNE.
+- **Keine Rückkopplung:** Den Audio-Ausgang des AMYboards nicht auf den eigenen Eingang patchen, solange AUDIO IN läuft.
+
+![MODULAR mit CV-Monitor](img/de/screen_modular.png) ![CV LFO mit Wavefolder-Vorschau](img/de/screen_cvlfo_fold.png)
+
+### Fehlersuche in einer Minute
+| Problem | Erst hier nachsehen |
+|---|---|
+| Noten oder Pads reagieren nicht | SETUP › MIDI › MONITOR |
+| Encoder fehlt | SETUP › ENCODER › I2C-SCAN |
+| CV kommt nicht an | CV-Monitor oben auf MODULAR |
+| Aufnahme bleibt stumm | SAMPLER › AUFNAHME › EINGANG TESTEN |
+| Takt holpert | SETUP › INFO › Messwerte (BEDIENUNG MAX unter 250 ms?) |
+| Einstellungen weg | Vor dem Ausschalten STOP drücken oder ein paar Sekunden warten |
+
+---
+
+## 7. Patch-Vorschläge für MODULAR
+
+Die Beispiele nutzen Module aus einem Doepfer-Rack mit KeyStep Pro und Mischpult. Jedes vergleichbare Modul geht genauso: ein VCO mit 1 V/Okt, ein Filter mit CV-Eingang, ein VCA, eine ADSR-Hüllkurve, ein LFO. In den Bildern steht jeweils, was am AMYboard einzustellen ist.
+
+**Kabelfarben:** blau = Tonhöhe (1 V/Okt), grün = Gate/Trigger, orange = Audio, lila = Modulation, grau gestrichelt = MIDI.
+
+### 1 · AMYboard als VCO, gespielt vom KeyStep Pro
+Das AMYboard wird zum zweiten Oszillator im Rack. Hüllkurve und VCA kommen aus dem Rack, der Klang bekommt die Effekte des AMYboard-Busses.
+
+![Patch 1: AMYboard als VCO](img/de/patch_vco.png)
+
+- **Kabel:** KeyStep PITCH 1 → CV IN 1 · KeyStep GATE 1 → A-140-2v GATE · A-140 OUT → A-130 CV · AMYboard AUDIO OUT L → A-130 IN · A-130 OUT → Mischpult.
+- **Tipp:** Erst Patch 7 machen (Stimmen), dann sitzen die Oktaven.
+- **Variante:** Ein Kabel OUT1 → IN2 mit CV MOD OUT1 = LFO ergibt Vibrato, ganz ohne weiteres Modul.
+
+![VCO-Seite mit Stimmanzeige](img/de/screen_vco.png)
+
+### 2 · Die 303-Spur spielt den Doepfer-VCO
+Die interne 303-Spur mit ACID-GENERATOR, Slide und Accent steuert einen analogen Oszillator und ein analoges Filter.
+
+![Patch 2: 303>CV](img/de/patch_acid.png)
+
+- **Kabel:** OUT1 → ABACUS CH1 IN → CH1 OUT → A-110-2 1V/OCT · OUT2 → A-140-2v GATE · A-110 SAW → A-120 IN · A-140 OUT → A-120 CV · A-120 OUT → Mischpult.
+- **Slide:** SLIDE hält das Gate offen, die Hüllkurve startet also nicht neu. Das Gleiten der Tonhöhe macht der Slew (ABACUS CH1, Rise/Fall kurz). Ohne Slew springt die Tonhöhe.
+- **Nur der Rack-Klang:** 303 › AUSGANG = MIDI. Dann schweigt die interne 303, die CV-Ausgabe läuft weiter. Mit BEIDE spielen beide zusammen.
+- **Rack-Filter dazu:** Lass die Hüllkurve kurz und die Resonanz hoch, dann klingt es typisch nach Acid.
+
+### 3 · Die Drum-Spur triggert das Rack
+Bis zu zwei Drum-Instrumente geben Trigger aus, tick-genau mit dem internen Klang.
+
+![Patch 3: CV TRIGGER](img/de/patch_trigger.png)
+
+- **Kabel:** OUT1 → Melon TRIG · OUT2 → A-140-2v GATE · A-140 OUT → A-103 CV · A-110-2 SAW → A-103 IN · Ausgänge → Mischpult.
+- **Ergebnis:** Die Braids-Stimme spielt mit der Bassdrum. Das Filter auf dem Dauerton des A-110 öffnet sich im HiHat-Rhythmus.
+- **TRIG PEGEL VELO:** Die Velocity der Steps wird zur Spannung. Leise Steps öffnen das Filter weniger.
+- **Sidechain-Pumpen:** Bassdrum-Trigger → Hüllkurve, deren invertiertes Signal einen VCA zuzieht. Dafür brauchst du ein Modul mit invertiertem Ausgang oder einen Attenuverter mit Offset.
+
+### 4 · AMYboard als Effektgerät
+Jeder Klang aus dem Rack geht durch Verzerrung, Filter, Echo und Hall des AMYboards.
+
+![Patch 4: AUDIO IN](img/de/patch_audio_in.png)
+
+- **Kabel:** Melon OUT → AUDIO IN L · A-110-2 PULSE → AUDIO IN R · AUDIO OUT L/R → Mischpult.
+- **Pegel zuerst:** Die Anzeige auf der AUDIO-IN-Seite läuft schon bei AUS. Pegel so einstellen, dass kein CLIP erscheint, und erst dann einschalten.
+- **Live spielen:**
+  - IN CUTOFF und IN DRIVE auf zwei Zusatz-Encoder legen.
+  - Ein Taster mit der Funktion AUDIO IN schaltet den Eingang von jeder Seite aus an und aus.
+- **Typen wechseln:** FILTER- oder DISTORTION-Typ wechseln klickt nicht mehr (v13.27). Das geht also auch mitten im Stück.
+
+![AUDIO-IN-Seite mit Pegelanzeige](img/de/screen_audio_in.png)
+
+### 5 · Generative Melodie mit dem Quantizer
+Ein langsamer LFO wird zur Melodie in einer Tonleiter. Ein zweiter LFO gibt den Rhythmus.
+
+![Patch 5: QUANTIZE](img/de/patch_quantize.png)
+
+- **Kabel:** A-145-4 LFO 1 → CV IN 1 · OUT1 → A-110-2 1V/OCT · LFO 2 (Rechteck) → A-140-2v GATE · A-110 SAW → A-103 IN → A-130 IN · A-140 OUT → A-130 CV · OUT2 → A-103 CV.
+- **Tonumfang:** 1 V Hub sind 1 Oktave. Mit einem kleinen LFO-Pegel bleibt die Melodie singbar.
+- **Ausprobieren:**
+  - Dreieck-LFOs ergeben Läufe auf und ab.
+  - Sinus wird an den Wendepunkten langsamer.
+  - Ein zufälliges Signal (z. B. vom ABACUS) springt.
+- **OUT2 bleibt frei:** CV MOD OUT2 = LFO mit FOLD bewegt das Filter.
+
+### 6 · Drums, die sich bewegen
+Zwei langsame Spannungen schieben GRIDS über die Karte, und das Drum-Muster verändert sich von selbst.
+
+![Patch 6: Grids per CV](img/de/patch_grids.png)
+
+- **Kabel:** A-145-4 LFO (sehr langsam) → CV IN 1 (X) · ABACUS CH4 (zyklisch, unipolar) → CV IN 2 (Y).
+- **Spannung:** 0–5 V überstreichen die ganze Karte. Negative Spannung hält am Rand, also besser unipolare Quellen nehmen.
+- **Festhalten:** Kommt ein gutes Muster vorbei, hält es IN PATTERN SCHR. fest.
+
+### 7 · Ein Kabel zum Stimmen
+Das AMYboard stimmt seinen eigenen VCO mit genauen Spannungen.
+
+![Patch 7: Stimmen](img/de/patch_tune.png)
+
+- **Kabel:** KeyStep MIDI OUT → AMYboard MIDI IN · CV OUT 1 → CV IN 1.
+- **Ablauf:**
+  1. MODULAR › MODUS auf MIDI>CV stellen.
+  2. C1 spielen und GRUNDTON und VCO FEIN auf 0 ct stellen.
+  3. C5 spielen und V/OKT auf 0 ct stellen.
+  - Die Tonhöhe bleibt nach dem Loslassen stehen. Mit GLAETTUNG STARK steht die Anzeige ruhig.
+
+---
+
+## 8. Hinweise zur Sketch-Datei
 
 - `sketch.py` fürs Board wird **ohne Kommentare** ausgeliefert (~300 KB) und lädt etwas schneller. Die kommentierte Fassung `claude/sketch_src.py` (~390 KB) läuft auf dem Board ebenfalls (getestet). Bei v13.11 reichte dafür der Speicher noch nicht.

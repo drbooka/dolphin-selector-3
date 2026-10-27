@@ -1,6 +1,6 @@
 # ================================================================
 # DOLPHIN SELECTOR 3  -  AMYboard Eurorack Synth  -  sketch.py
-# Version 13.27 (2026-10-27) - smooth switching, VCO smoothing
+# Version 13.28 (2026-10-27) - SMOOTHING label (German edition)
 # ================================================================
 #
 # English edition: comments and all on-screen menus are in English.
@@ -70,6 +70,10 @@
 # STATE: /sd/dolphin_state.json (else flash). On first start the
 # v11 files (amyboard_state*.txt) are imported and NOT deleted.
 # Scenes: dolphin_scenes.json.
+#
+# NEW IN v13.28:
+#   - Only the German edition changes (a value label that did not fit the
+#     line). Version number kept in step.
 #
 # NEW IN v13.27:
 #   - No more clicks when changing the VCO WAVE or the FILTER / DISTORTION
@@ -461,7 +465,7 @@ try:
 except Exception:
     _random = None
 
-VERSION = "13.27"
+VERSION = "13.28"
 
 
 # ================================================================

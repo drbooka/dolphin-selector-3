@@ -24,7 +24,7 @@ try:
     import random as _random
 except Exception:
     _random = None
-VERSION = "13.27"
+VERSION = "13.28"
 def clamp(v, lo, hi):
     if v < lo:
         return lo

@@ -1,6 +1,6 @@
 # ================================================================
 # DOLPHIN SELECTOR 3  -  AMYboard Eurorack Synth  -  sketch.py
-# Version 13.27 (27.10.2026) - weiches Umschalten, VCO-Glaettung
+# Version 13.28 (27.10.2026) - Anzeige GLAETTUNG
 # ================================================================
 #
 # Hardware (unveraendert):
@@ -67,12 +67,16 @@
 # werden die Dateien von v11 (amyboard_state*.txt) uebernommen und
 # NICHT geloescht. Szenen: dolphin_scenes.json.
 #
+# NEU IN v13.28:
+#   - VCO > GLAETTUNG: Stufe LEICHT heisst jetzt WENIG. "GLAETTUNG LEICHT"
+#     war fuer die Zeile zu lang und wurde abgeschnitten.
+#
 # NEU IN v13.27:
 #   - Kein Knacken mehr beim Wechsel der VCO-WELLE und beim Wechsel von
 #     FILTER- bzw. DISTORTION-Typ bei AUDIO IN: kurz ausblenden (Huellkurve,
 #     60 ms), umschalten, wieder einblenden (5 ms). Schnelles Durchdrehen
 #     blendet nur einmal aus.
-#   - VCO > GLAETTUNG (AUS/LEICHT/STARK, nur Modus FREI): der 1V/Okt-
+#   - VCO > GLAETTUNG (AUS/WENIG/STARK, nur Modus FREI): der 1V/Okt-
 #     Eingang wird in Python gelesen und geglaettet (gleitender Mittelwert,
 #     Zeitkonstante ca. 60 / 200 ms) statt direkt in AMY. Ruhigerer Ton,
 #     folgt schnellen Spruengen aber etwas verzoegert.
@@ -459,7 +463,7 @@ try:
 except Exception:
     _random = None
 
-VERSION = "13.27"
+VERSION = "13.28"
 
 
 # ================================================================
@@ -8081,7 +8085,7 @@ def _vco_sm_changed():
 
 
 P_VWAV = P("WELLE", rV("wav"), kind=ENUM, opts=VCO_WAVE_NAMES, apply=_vco_wave_changed)
-P_VSM = P("GLAETTUNG", rV("sm"), kind=ENUM, opts=["AUS", "LEICHT", "STARK"], apply=_vco_sm_changed,
+P_VSM = P("GLAETTUNG", rV("sm"), kind=ENUM, opts=["AUS", "WENIG", "STARK"], apply=_vco_sm_changed,
           vis=lambda: S["vco"]["src"] != 0 and S["vco"]["pm"] == 0)
 P_VPW = P("VCO PW", rV("pw"), 0.05, 0.95, 0.01, apply=_vco_do(_vco_send_duty),
           key="vpw", short="VPW", vis=lambda: S["vco"]["wav"] == 3)

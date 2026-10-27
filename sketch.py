@@ -24,7 +24,7 @@ try:
     import random as _random
 except Exception:
     _random = None
-VERSION = "13.27"
+VERSION = "13.28"
 def clamp(v, lo, hi):
     if v < lo:
         return lo
@@ -5803,7 +5803,7 @@ def _vco_sm_changed():
     _vco_sm_sent = None
     _vco_pitch_changed()
 P_VWAV = P("WELLE", rV("wav"), kind=ENUM, opts=VCO_WAVE_NAMES, apply=_vco_wave_changed)
-P_VSM = P("GLAETTUNG", rV("sm"), kind=ENUM, opts=["AUS", "LEICHT", "STARK"], apply=_vco_sm_changed,
+P_VSM = P("GLAETTUNG", rV("sm"), kind=ENUM, opts=["AUS", "WENIG", "STARK"], apply=_vco_sm_changed,
           vis=lambda: S["vco"]["src"] != 0 and S["vco"]["pm"] == 0)
 P_VPW = P("VCO PW", rV("pw"), 0.05, 0.95, 0.01, apply=_vco_do(_vco_send_duty),
           key="vpw", short="VPW", vis=lambda: S["vco"]["wav"] == 3)

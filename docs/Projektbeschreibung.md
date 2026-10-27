@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Projektbeschreibung
 
-Stand 27.10.2026 · Sketch-Version 13.27 (13.18 auf der Hardware bestätigt, dazu v13.24–v13.27: AUDIO IN, VCO, IN-Kalibrierung, MIDI-Monitor, weiches Umschalten)
+Stand 27.10.2026 · Sketch-Version 13.28 (13.18 auf der Hardware bestätigt, dazu v13.24–v13.27: AUDIO IN, VCO, IN-Kalibrierung, MIDI-Monitor, weiches Umschalten)
 
 ## Ziel
 
@@ -86,6 +86,7 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 | 13.25 | 26.10.2026 | Kalibrierung der CV-Eingänge (IN1/IN2 OFFSET/SKALA) mit Auto-Abgleich über OUT1, wirkt auch auf VCO und GATE+PITCH im AMY-Weg |
 | 13.26 | 27.10.2026 | MIDI-Monitor unter SETUP › MIDI (letzte 8 Ereignisse mit Aktion des Sketches) |
 | 13.27 | 27.10.2026 | Weiches Umschalten (Aus-/Einblenden) bei VCO-WELLE und AUDIO-IN-Filter-/Distortion-Typ, VCO › GLAETTUNG für TONHOEHE FREI |
+| 13.28 | 27.10.2026 | GLAETTUNG-Stufe LEICHT heißt WENIG (passte nicht in die Zeile). Anleitung DE/EN: Tipps und Tricks, 7 bebilderte Patch-Vorschläge für MODULAR (Bilder unter `docs/img/`) |
 
 ## Offene Punkte (auf der Hardware zu prüfen)
 
