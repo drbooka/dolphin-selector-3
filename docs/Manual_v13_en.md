@@ -552,5 +552,5 @@ If a note hangs: hold 2 s on HOME (PANIC).
 
 ## 6. Notes on the sketch file
 
-- `sketch.py` for the board is delivered **without comments** (~259 KB). With all comments (~323 KB) the memory was no longer enough to compile on the board. The commented English version is in the project as `claude/sketch_src_en.py` – it is meant for reading, not for uploading.
+- `sketch.py` for the board is delivered **without comments** (~300 KB) and loads a little faster. The commented English version `claude/sketch_src_en.py` (~390 KB) runs on the board as well (tested). Back in v13.11 the memory was not yet enough for it.
 - English edition: upload `sketch_v13.19_en.py` as `sketch.py`. German edition: `sketch_v13.19.py`.

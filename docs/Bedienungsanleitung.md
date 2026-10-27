@@ -547,4 +547,4 @@ Hängt der Ton: auf SPIELEN 2 s halten (PANIC).
 
 ## 6. Hinweise zur Sketch-Datei
 
-- `sketch.py` fürs Board wird **ohne Kommentare** ausgeliefert (~259 KB). Mit allen Kommentaren (~325 KB) reichte der Speicher beim Übersetzen auf dem Board nicht mehr. Die kommentierte Fassung liegt im Projekt als `claude/sketch_src.py` – sie ist zum Lesen, nicht zum Übertragen gedacht.
+- `sketch.py` fürs Board wird **ohne Kommentare** ausgeliefert (~300 KB) und lädt etwas schneller. Die kommentierte Fassung `claude/sketch_src.py` (~390 KB) läuft auf dem Board ebenfalls (getestet). Bei v13.11 reichte dafür der Speicher noch nicht.

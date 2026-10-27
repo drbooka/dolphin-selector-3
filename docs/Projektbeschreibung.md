@@ -30,7 +30,7 @@ Geplant ist eine eigene 3D-gedruckte 22HP-Frontplatte, auf der 8-Encoder und Joy
 
 ## Software
 
-Eine Datei `sketch.py`, geladen über AMYboard Online. Sie wird **ohne Kommentare** ausgeliefert (~264 KB). Die kommentierte Fassung `sketch_src.py` (~325 KB) ist zu groß zum Übersetzen auf dem Board (v13.11 startete deshalb nicht).
+Eine Datei `sketch.py`, geladen über AMYboard Online. Sie wird **ohne Kommentare** ausgeliefert (~300 KB). Die kommentierte Fassung `sketch_src.py` (~390 KB) läuft inzwischen auch auf dem Board (vom Nutzer bestätigt). Bei v13.11 startete sie noch nicht, weil der Speicher nicht reichte.
 
 - **Zustand:** Alles Speicherbare liegt in einem Dict `S`. Es wird als JSON gespeichert, mit Werkswerten zusammengeführt (`_merge`) und über `sanitize()` auf gültige Grenzen gebracht. Neue Schlüssel bekommen so bei alten Ständen automatisch ihre Werkswerte.
 - **Parameter-System:** Jeder Parameter ist ein `P`-Objekt mit Anzeige, Bereich, Apply-Funktion und Sichtbarkeit. Dieselbe Definition dient der Menüzeile, dem Bearbeitungsring, der Encoder-Zuordnung, den Makros und dem Speichern. Funktionen, die die Firmware nicht kennt (Distortion, `fit`, `store_sample`), werden beim Start geprüft und sonst ausgeblendet.
