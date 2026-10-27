@@ -91,9 +91,9 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 1. ~~303: Starten die Hüllkurven beim Slide neu?~~ – am 27.10.2026 bestätigt: Slide gleitet ohne neuen Anschlag.
 2. ~~Klingt der Swing bei 1/16 wie erwartet?~~ – am 27.10.2026 bestätigt (60 % und 75 %).
 3. MIDI>CV nutzt die Software-Variante; ob die Firmware `note_output` CV_GATE mit dem CV-Hook verbindet, ist offen (`NOTE_OUTPUT_CV_NATIVE`).
-4. Joystick: Stimmt die Richtung hoch/runter? Sonst `JOY_Y_INVERT = True`.
-5. Drum-Trigger: Reicht ein Gate von 1/32 für die A-140-2v?
-6. Grids per CV: Stimmt die Richtung an CV IN 1/2?
+4. ~~Joystick: Stimmt die Richtung hoch/runter?~~ – am 27.10.2026 bestätigt (bei JOYSTICK>303 = AN steuert er bewusst die 303 statt der Navigation).
+5. ~~Drum-Trigger: Reicht ein Gate von 1/32 für die A-140-2v?~~ – am 27.10.2026 bestätigt, löst zuverlässig aus.
+6. ~~Grids per CV: Stimmt die Richtung an CV IN 1/2?~~ – am 27.10.2026 bestätigt (X und Y).
 7. **Kalibrierung:** Am 26.10.2026 OUT1 mit Multimeter kalibriert (OFFSET −0,312 V, SKALA 0,984 – der Ausgang lag ab Werk 0,3 V zu hoch). Auto-Abgleich (v13.25): IN1 OFFSET +0,169 V / SKALA 1,011, IN2 +0,15 V / 1,010 (gleicher Bauteil-Versatz). Offen: OUT2 kalibrieren. Ein defektes Patchkabel hatte zuerst einen toten Eingang vorgetäuscht.
 8. **EQ nach Firmware-Update:** Die Firmware hat das Vorzeichen im EQ-Bassband korrigiert. Das PUNCH-Profil auf dem Drum-Bus kann danach bassiger klingen als gewohnt.
 9. ~~**VCO (v13.21)**~~ – **am 26.10.2026 auf der Hardware bestätigt:** Klang, SUB, OSZ 2, Pegel (sauber auch mit beiden auf 1.0), Tracking nach IN1-Abgleich ohne Steigungsfehler (Rest −12 ct → VCO FEIN +12, Streuung ±8 ct durch Zittern des CV-Eingangs), QUANT mit CHROM/MAJOR sauber und ohne Flattern. Rest: Knacken beim Wechsel der WELLE; Zittern im Modus FREI (evtl. Glättung als Option). MOD IN mit FM, PWM und FOLD bestätigt.
