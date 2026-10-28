@@ -125,3 +125,5 @@ Automatisch mit neuer Firmware (keine Sketch-Änderung nötig): sauberes PCM-Ret
   - **Sprung:** Wellen ziehen langsam über den unteren Rand, ein Delfin springt im Bogen heraus und taucht mit Spritzern ein. Läuft der Sequencer, springt er im Takt (z. B. auf die Eins), sonst ab und zu.
   - **Sonar:** dunkler U-Boot-Bildschirm mit kreisendem Radarstrahl. Delfine tauchen als Echo auf, wenn der Strahl sie trifft, und verblassen wieder. Jeder Kick schickt einen Ping-Ring vom Mittelpunkt los. Passt zu langen, minimalen Techno-Sets.
   - **Tunnel:** Rechtecke rasen in die Tiefe, ein Delfin fliegt durch den Tunnel. Das Tempo folgt den BPM, jeder Kick gibt einen kurzen Schub. Wie ein Lichttunnel im Warehouse.
+  - **Terminal:** Hex-Code fällt von oben – die echten MIDI-Bytes, die gerade ankommen (Noten, Clock, CCs). In der Mitte ein ASCII-Delfin, darunter eine blinkende Eingabezeile mit Kanal und BPM. Hacker-Keller-Ästhetik.
+  - **Flyer:** Rave-Plakat im Stil der 90er: großer Schriftzug „DOLPHIN soundsystem“ (Name noch offen), Delfin in Rasterpunkten, unten BPM und Kanal. Alle paar Takte springt das Layout um, auf Takt 1 ein kurzer Strobo-Invert.
