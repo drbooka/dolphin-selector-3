@@ -121,3 +121,7 @@ Automatisch mit neuer Firmware (keine Sketch-Änderung nötig): sauberes PCM-Ret
 
 - NOTCH/PHASER auch als Filtertyp für Synth-Kanäle (Juno/AMYB).
 - Ratchets (2er-Roll pro Step), Wahrscheinlichkeit pro Drum-Instrument, Fill-Modus.
+- **Bildschirmschoner mit Delfinen** (Vorschlag 28.10.2026, noch nicht entschieden). Auswahl unter SETUP › DISPLAY › SCHONER-BILD, dazu WECHSEL (alle paar Minuten ein anderer, Einzelne abwählbar; ruhige Bilder bei gestopptem, wilde bei laufendem Sequencer) und TEXT (bisheriger Schoner). Alles bewegt sich gegen Einbrennen, Helligkeit gedimmt, während der Wiedergabe höchstens ca. 4 Bilder/s in Streifen.
+  - Ruhig: **1 Sprung** (Delfin springt aus Wellen, im Takt auf die Eins), **2 Schwarm** (drei Delfine unter Wasser, Blasen, Lichtstreifen), **3 Nachtmeer** (Delfin-Silhouette vor dem Mond, funkelnde Sterne).
+  - Underground: **Glitch** (Pixel-Delfin zerreißt auf jeden Schlag, Scanlines), **Oszi** (Delfin als Vektorlinie, darunter die echte Ausgangs-Wellenform), **Sonar** (Radarstrahl, Delfine als Echo, jeder Kick ein Ping), **Tunnel** (Delfin fliegt durch einen Rechteck-Tunnel im BPM-Tempo), **Terminal** (fallende echte MIDI-Bytes, ASCII-Delfin, Eingabezeile mit Kanal/BPM), **Flyer** (90er-Rave-Plakat „DOLPHIN soundsystem“, Rasterpunkt-Delfin, Strobo-Invert auf Takt 1).
+  - Offen: welche davon rein, Name auf dem Flyer. Schätzung +15–25 KB Sketch.
