@@ -131,3 +131,4 @@ Automatisch mit neuer Firmware (keine Sketch-Änderung nötig): sauberes PCM-Ret
   - **Spektrum:** 16 Frequenzbalken aus dem Ausgang, eine Delfin-Flosse reitet oben auf dem lautesten Balken mit. Kostet etwas Rechenzeit (eigene Abschaltung, falls BEDIENUNG MAX steigt).
   - **Warehouse-Lichter:** Laserlinien fächern von oben in den Raum, Delfin-Schatten ziehen durch den Nebel. Die Linien wechseln mit jedem Takt die Richtung.
   - **Leerlauf-Signal:** Läuft der Sequencer nicht, zeigt jeder Schoner nach ein paar Minuten nur noch einen langsam pulsierenden Delfin-Umriss – schont das Display über Nacht.
+  - **Entschieden 28.10.2026:** Die Schoner laufen zufällig nacheinander. Nach einer einstellbaren Zeit (30 min, 1 h oder 4 h, ab Werk 30 min) übernimmt das Leerlauf-Signal. Schätzung zusammen mit v13.29 (LEDs): Board-Datei ca. 345 KB, kommentierte Fassung ca. 440 KB, RAM im Betrieb ca. +15–20 KB.
