@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Projektbeschreibung
 
-Stand 28.10.2026 · Sketch-Version 13.29 (13.18 auf der Hardware bestätigt, dazu v13.24–v13.27: AUDIO IN, VCO, IN-Kalibrierung, MIDI-Monitor, weiches Umschalten)
+Stand 28.10.2026 · Sketch-Version 13.30 (13.18 auf der Hardware bestätigt, dazu v13.24–v13.27: AUDIO IN, VCO, IN-Kalibrierung, MIDI-Monitor, weiches Umschalten)
 
 ## Ziel
 
@@ -88,6 +88,7 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 | 13.27 | 27.10.2026 | Weiches Umschalten (Aus-/Einblenden) bei VCO-WELLE und AUDIO-IN-Filter-/Distortion-Typ, VCO › GLAETTUNG für TONHOEHE FREI |
 | 13.28 | 27.10.2026 | GLAETTUNG-Stufe LEICHT heißt WENIG (passte nicht in die Zeile). Anleitung DE/EN: Tipps und Tricks, 7 bebilderte Patch-Vorschläge für MODULAR (Bilder unter `docs/img/`) |
 | 13.29 | 28.10.2026 | LEDs: Single-LED mit Kanalfarbe, EDIT, TAKT-Blitz, Kanal-Blitz, PANIC-Verlauf und WARNUNG (je Farbe wählbar), Zusatz-Encoder mit ZUSTAND (gedimmt = ohne Wirkung, AUF DRUCK blinkt, Taster-Zustand) und DREH-BLITZ, LED-Farbe KANAL, HELLIGKEIT, IM SCHONER, LED-TEST, INFO › NAV-LED |
+| 13.30 | 28.10.2026 | Bildschirmschoner mit Delfinen: SPRUNG, SONAR, TUNNEL, TERMINAL, FLYER, ACID-SPUR, SPEKTRUM, WAREHOUSE im Zufall (WECHSEL 1–10 min), LEERLAUF-Signal nach 30 min/1 h/4 h, KONTRAST, Flyer-Name, Auswahl, JETZT ZEIGEN; neuer Pixel-Delfin |
 
 ## Offene Punkte (auf der Hardware zu prüfen)
 
@@ -107,6 +108,7 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 12. **DX7 VON SD (v13.19):** am 26.10.2026 bestätigt – INFO DX7 SD = JA, Stimmen klingen richtig, Wechsel ohne Stocken, SD-Stimme nach Neustart wieder geladen. Bedienung: kein hörbares Holpern beim schnellen Drehen, BEDIENUNG MAX 132 ms (unter den 250 ms Vorlauf).
 13. **Encoder-Menü (v13.24):** am 26.10.2026 mit dem M5Stack bestätigt – Übersicht, Sprung per Drehen, PATCH für beliebigen Kanal, LADEN AUF DRUCK mit Taster, LED-Farben am richtigen Encoder, Sets A/B. Offen: Quad-Teile (LEDs, Q1–Q8), sobald der Ersatz-Quad da ist.
 15. **LEDs (v13.29):** Leuchtet die Single-LED (INFO › NAV-LED, LED-TEST)? Alle LEDs am richtigen Encoder? Takt stabil mit TAKT-Blitz (BEDIENUNG MAX)? Läuft die kommentierte Fassung (403 KB) noch an?
+16. **Bildschirmschoner (v13.30):** Bilder auf dem Display (Schrift, Delfin), BEDIENUNG/ZEICHNEN MAX mit laufendem Sequencer (SPEKTRUM rechnet am meisten), Takt stabil, RAM FREI, Start der kommentierten Fassung (423 KB).
 14. ~~**Pads/Slices über MIDI (v13.19)**~~ – **am 27.10.2026 bestätigt:** Pads (Noten 36–43) und Slices (44+) auf dem PAD-KANAL funktionieren. Die erste Fehlmeldung lag an der Verkabelung; der MIDI-MONITOR (v13.26) bleibt zur Fehlersuche.
 
 ## Stand der Firmware-Neuerungen (Discord #announcements bis 12.09.2026, GitHub bis v1.2.200)
@@ -121,14 +123,4 @@ Automatisch mit neuer Firmware (keine Sketch-Änderung nötig): sauberes PCM-Ret
 
 - NOTCH/PHASER auch als Filtertyp für Synth-Kanäle (Juno/AMYB).
 - Ratchets (2er-Roll pro Step), Wahrscheinlichkeit pro Drum-Instrument, Fill-Modus.
-- **Bildschirmschoner mit Delfinen** (Auswahl 28.10.2026). Auswahl unter SETUP › DISPLAY › SCHONER-BILD, dazu WECHSEL (alle paar Minuten ein anderer) und TEXT (bisheriger Schoner). Alles bewegt sich gegen Einbrennen, Helligkeit gedimmt, während der Wiedergabe höchstens ca. 4 Bilder/s in Streifen, Takt hat Vorrang.
-  - **Sprung:** Wellen ziehen langsam über den unteren Rand, ein Delfin springt im Bogen heraus und taucht mit Spritzern ein. Läuft der Sequencer, springt er im Takt (z. B. auf die Eins), sonst ab und zu.
-  - **Sonar:** dunkler U-Boot-Bildschirm mit kreisendem Radarstrahl. Delfine tauchen als Echo auf, wenn der Strahl sie trifft, und verblassen wieder. Jeder Kick schickt einen Ping-Ring vom Mittelpunkt los. Passt zu langen, minimalen Techno-Sets.
-  - **Tunnel:** Rechtecke rasen in die Tiefe, ein Delfin fliegt durch den Tunnel. Das Tempo folgt den BPM, jeder Kick gibt einen kurzen Schub. Wie ein Lichttunnel im Warehouse.
-  - **Terminal:** Hex-Code fällt von oben – die echten MIDI-Bytes, die gerade ankommen (Noten, Clock, CCs). In der Mitte ein ASCII-Delfin, darunter eine blinkende Eingabezeile mit Kanal und BPM. Hacker-Keller-Ästhetik.
-  - **Flyer:** Rave-Plakat im Stil der 90er: großer Schriftzug „DOLPHIN soundsystem“ (Name noch offen), Delfin in Rasterpunkten, unten BPM und Kanal. Alle paar Takte springt das Layout um, auf Takt 1 ein kurzer Strobo-Invert.
-  - **Acid-Spur:** Die 303-Linie als Höhenprofil, über das ein Delfin surft. Slides werden zu Rampen, Accents zu Wellenbergen. Nur bei laufender 303, sonst fällt der Schoner auf Sprung zurück.
-  - **Spektrum:** 16 Frequenzbalken aus dem Ausgang, eine Delfin-Flosse reitet oben auf dem lautesten Balken mit. Kostet etwas Rechenzeit (eigene Abschaltung, falls BEDIENUNG MAX steigt).
-  - **Warehouse-Lichter:** Laserlinien fächern von oben in den Raum, Delfin-Schatten ziehen durch den Nebel. Die Linien wechseln mit jedem Takt die Richtung.
-  - **Leerlauf-Signal:** Läuft der Sequencer nicht, zeigt jeder Schoner nach ein paar Minuten nur noch einen langsam pulsierenden Delfin-Umriss – schont das Display über Nacht.
-  - **Entschieden 28.10.2026:** Die Schoner laufen zufällig nacheinander. Nach einer einstellbaren Zeit (30 min, 1 h oder 4 h, ab Werk 30 min) übernimmt das Leerlauf-Signal. Schätzung zusammen mit v13.29 (LEDs): Board-Datei ca. 345 KB, kommentierte Fassung ca. 440 KB, RAM im Betrieb ca. +15–20 KB.
+- ~~**Bildschirmschoner mit Delfinen**~~ – umgesetzt in v13.30 (Sprung, Sonar, Tunnel, Terminal, Flyer, Acid-Spur, Spektrum, Warehouse, Leerlauf-Signal).

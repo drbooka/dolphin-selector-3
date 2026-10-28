@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Bedienungsanleitung
 
-Version 13.29 · Stand 28.10.2026 · AMYboard im Eurorack-Case
+Version 13.30 · Stand 28.10.2026 · AMYboard im Eurorack-Case
 
 ---
 
@@ -216,6 +216,7 @@ SPIELEN (Startseite)
         ├─ MAKROS ─► MAKRO 1–4
         ├─ AUDIO (STEREO/MONO) · STIMMEN MAX · FAILSAFE
         ├─ DISPLAY ─► HELLIGKEIT · SCHONER NACH · UPDATE (VOLL/BAENDER)
+        │   └─ SCHONER-BILD ─► BILD · WECHSEL · LEERLAUF · KONTRAST · FLYER · Auswahl (8 Bilder) · JETZT ZEIGEN
         ├─ WLAN ─► STATUS · IP · NETZ · VERBINDEN · NEU EINGEBEN · TRENNEN
         ├─ TAKT ─► SEQ-AUSGABE (DIREKT/VORAUS) · VORLAUF · VORAUS-TEST · UI-TAKT ·
         │          NOTLAUF · TRANSPORT · Status-Anzeigen
@@ -494,6 +495,30 @@ Der Sampler hat **8 Slots** (S1–S8). Ein Slot zeigt auf eine WAV-Datei auf der
 - **ENCODER:** **GERAETE** zeigt die erkannten Zusatz-Geräte (z. B. `M5+2QUAD`). **I2C-SCAN** listet jedes Gerät am Bus mit Adresse, erkanntem Typ und Seesaw-Produktnummer (P5752 = Quad). Fehlt ein Encoder im Menü, zeigt diese Liste, ob er überhaupt antwortet und als was er erkannt wird. Dazu SET, DREHRICHTUNG, **LEDS** und die Übersicht aller angeschlossenen Encoder E1–E8 und Q1–Q8 (siehe Abschnitt 1).
 - **FAILSAFE** begrenzt die Rechenlast. Bei Überlast werden Stimmen abgeschaltet statt zu knacken.
 - **DISPLAY:** **HELLIGKEIT** (Kontrast), **SCHONER NACH** (dimmt nach 1–30 min ohne Eingabe; die erste Eingabe weckt nur), **UPDATE** BAENDER = nur geänderte Bildteile senden (schont den Takt), VOLL = immer das ganze Bild (falls das Bild fehlerhaft ist).
+- **DISPLAY › SCHONER-BILD (v13.30):** Der Bildschirmschoner zeigt Delfine, die auf die Musik reagieren:
+
+  | Bild | Was passiert | Reagiert auf |
+  |---|---|---|
+  | **SPRUNG** | Delfin springt aus den Wellen | läuft: einmal pro Takt, sonst alle 6 s |
+  | **SONAR** | Radarstrahl, Delfine leuchten als Echo auf | jede Bassdrum schickt einen Ping-Ring |
+  | **TUNNEL** | Delfin fliegt durch einen Rechteck-Tunnel | Tempo, Bassdrum gibt Schub |
+  | **TERMINAL** | fallender Hex-Code, ASCII-Delfin, Zeile mit Kanal und BPM | die echten MIDI-Bytes, die ankommen |
+  | **FLYER** | Rave-Plakat mit Name, Raster-Delfin, BPM und Kanal | neues Layout alle 4 Takte, Strobo-Blitz auf Takt 1 |
+  | **ACID-SPUR** | Delfin surft auf der 303-Linie (Slides = Rampen, Accents = Wellenberge) | 303-Pattern; steht die 303, kommt SPRUNG |
+  | **SPEKTRUM** | 12 Frequenzbalken, Flosse auf dem lautesten | der Audio-Ausgang |
+  | **WAREHOUSE** | Laserlinien und Delfin-Schatten im Nebel | Richtung wechselt jeden Takt |
+
+  - **BILD:** **ZUFALL** (ab Werk) wechselt zufällig zwischen den ausgewählten Bildern, nie zweimal dasselbe hintereinander. Oder ein festes Bild, oder **TEXT** (der bisherige ruhige Schoner).
+  - **WECHSEL:** nach 1, 2 (ab Werk), 5 oder 10 Minuten kommt das nächste Bild.
+  - **LEERLAUF:** nach **30 MIN** (ab Werk), **1 STD** oder **4 STD** Schoner übernimmt das **Leerlauf-Signal**: ein langsam pulsierender Delfin-Umriss, der jede Minute den Platz wechselt, mit niedrigstem Kontrast. Schont das Display über Nacht.
+  - **KONTRAST:** DUNKEL, MITTEL (ab Werk) oder HELL, solange der Schoner läuft.
+  - **FLYER:** Name auf dem Flyer (Zeichenrad, bis 10 Zeichen, ab Werk DOLPHIN).
+  - **Auswahl:** jedes der 8 Bilder einzeln AN/AUS für den Zufall. Sind alle aus, läuft TEXT.
+  - **JETZT ZEIGEN** startet den Schoner sofort – zum Ausprobieren. Jede Eingabe weckt ihn wieder.
+  - **SCHONER NACH** bestimmt weiter, wann er startet.
+  - Der Takt hat Vorrang: Während der Wiedergabe kommt höchstens alle 0,4 s ein Bild, in Streifen gesendet. Im Stillstand alle 0,2 s.
+
+  ![Die Bildschirmschoner (Simulation, Schrift vereinfacht)](img/de/screen_savers.png)
 - **TAKT:**
   - **SEQ-AUSGABE VORAUS** (ab Werk): Noten werden um **VORLAUF** (ab Werk 250 ms) im Voraus berechnet und von AMY tick-genau gespielt – Display, Encoder und Speichern können den Takt nicht verschieben. **DIREKT** spielt sofort (nur zum Vergleich).
   - **VORAUS-TEST:** ein Clap sofort, dann zwei weitere je 2 Schläge später. Klingen alle drei gleichzeitig, plant die Firmware nicht voraus → SEQ-AUSGABE auf DIREKT stellen.

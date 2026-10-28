@@ -1,6 +1,6 @@
 # ================================================================
 # DOLPHIN SELECTOR 3  -  AMYboard Eurorack Synth  -  sketch.py
-# Version 13.29 (2026-10-28) - LEDS
+# Version 13.30 (2026-10-28) - SCREENSAVERS
 # ================================================================
 #
 # English edition: comments and all on-screen menus are in English.
@@ -70,6 +70,20 @@
 # STATE: /sd/dolphin_state.json (else flash). On first start the
 # v11 files (amyboard_state*.txt) are imported and NOT deleted.
 # Scenes: dolphin_scenes.json.
+#
+# NEW IN v13.30:
+#   - Screensavers with dolphins: JUMP, SONAR, TUNNEL, TERMINAL, FLYER,
+#     ACID LINE, SPECTRUM, WAREHOUSE. They run in random order (CHANGE after
+#     1/2/5/10 min); after 30 min/1 h/4 h (IDLE) a slowly pulsing dolphin
+#     outline takes over. Beat, kick (bass drum of the drum track), 303
+#     pattern, MIDI bytes and the audio output drive the images.
+#   - SETUP > DISPLAY > SAVER IMAGES: IMAGE (RANDOM, one fixed image, TEXT =
+#     previous saver), CHANGE, IDLE, CONTRAST, FLYER text, selection for the
+#     random mode, SHOW NOW.
+#   - During playback at most one image every 400 ms, sent in bands with the
+#     usual budget - timing comes first.
+#   HW-TEST: images on the display, CONTROLS/DRAW MAX with the sequencer
+#            running (SPECTRUM computes the most), memory at start.
 #
 # NEW IN v13.29:
 #   - The LED of the navigation encoder (Single #5880) is used: COLOUR
@@ -483,7 +497,7 @@ try:
 except Exception:
     _random = None
 
-VERSION = "13.29"
+VERSION = "13.30"
 
 
 # ================================================================
@@ -1425,6 +1439,12 @@ def new_vco():
             "sm": 0}
 
 
+def new_sv():
+    # v13.30 saver: bild 0 = RANDOM, 1-8 fixed image, 9 = TEXT; pool = bits
+    # of the images in random mode; wz/lz/hl = index CHANGE/IDLE/CONTRAST
+    return {"bild": 0, "pool": 255, "wz": 1, "lz": 0, "hl": 1, "fly": "DOLPHIN"}
+
+
 def new_led():
     # v13.29 LEDs: hl brightness 0-3, nav colour of the navigation (0 = channel,
     # else index in LED_RGB), ed/bt/pn/wn colour for EDIT/BEAT/PANIC/
@@ -1523,6 +1543,8 @@ def default_state():
         "ain": new_ain(),
         # v13.29: LEDs
         "led": new_led(),
+        # v13.30: screensavers
+        "sv": new_sv(),
     }
     for k, v in TONE_DEF:
         s[k] = [v] * 17
@@ -1763,6 +1785,7 @@ def sanitize():
             c[1] = clamp(c[1], lo, hi)
     _sanitize_vco()
     _sanitize_led()
+    _sanitize_sv()
     _sanitize_ain()
     _sanitize_sampler()
 
@@ -1778,6 +1801,18 @@ def _sanitize_encx(lst):
         except Exception:
             out.append(new_encx())
     return out
+
+
+def _sanitize_sv():
+    x = S["sv"]
+    x["bild"] = clamp_int(x["bild"], 0, 9)
+    x["pool"] = clamp_int(x["pool"], 0, 255)
+    x["wz"] = clamp_int(x["wz"], 0, 3)
+    x["lz"] = clamp_int(x["lz"], 0, 2)
+    x["hl"] = clamp_int(x["hl"], 0, 2)
+    if not isinstance(x["fly"], str):
+        x["fly"] = "DOLPHIN"
+    x["fly"] = x["fly"][:10]
 
 
 def _sanitize_led():
@@ -6662,6 +6697,8 @@ def midi_dispatch(m):
     global _learned, _learn_armed
     _midi_count[0] += 1
     try:
+        if _saver and _sv["cur"] == SV_TERM:
+            sv_midi(m)
         if S["thru"] and tulip is not None:
             tulip.midi_out(m)
         if len(m) and m[0] in (0xFA, 0xFB, 0xFC):
@@ -8375,6 +8412,7 @@ LED_KANAL = 10           # v13.29: LED colour = colour of the channel
 LED_IND_NAMES = LED_NAMES[:10]               # indications: AUTO, OFF, colours
 LED_NAV_NAMES = ["CHANNEL"] + LED_NAMES[1:10]  # navigation: 0 = channel colour
 LED_HELL = (0.5, 1.0, 2.0, 3.5)              # BRIGHTNESS 1-4 (2 = as before)
+SV_NAMES = ["JUMP", "SONAR", "TUNNEL", "TERMINAL", "FLYER", "ACID LINE", "SPECTRUM", "WAREHOUSE"]   # v13.30: saver images
 
 
 def _hue40(h):
@@ -11104,6 +11142,49 @@ def encoder_page():
     return EncOverviewPage()
 
 
+# ---------------- SCHONER-BILD (v13.30) ----------------
+
+def rSV(k):
+    return lambda: (S["sv"], k)
+
+
+def _sv_rnd():
+    return S["sv"]["bild"] == 0
+
+
+def _pool_p(i):
+    def g():
+        return (S["sv"]["pool"] >> i) & 1
+
+    def s(v):
+        if v:
+            S["sv"]["pool"] |= 1 << i
+        else:
+            S["sv"]["pool"] &= 255 ^ (1 << i)
+    return P(SV_NAMES[i], kind=BOOL, getter=g, setter=s, vis=_sv_rnd)
+
+
+SP_BILD = P("IMAGE", rSV("bild"), kind=ENUM, opts=["RANDOM"] + SV_NAMES + ["TEXT"])
+SP_WZ = P("CHANGE", rSV("wz"), kind=ENUM, opts=["1 MIN", "2 MIN", "5 MIN", "10 MIN"],
+          vis=_sv_rnd)
+SP_LZ = P("IDLE", rSV("lz"), kind=ENUM, opts=["30 MIN", "1 H", "4 H"])
+SP_HL = P("CONTRAST", rSV("hl"), kind=ENUM, opts=["DARK", "MEDIUM", "BRIGHT"])
+SP_POOL = [_pool_p(i) for i in range(len(SV_NAMES))]
+
+
+def _fly_set(s):
+    S["sv"]["fly"] = s.upper()[:10]
+    request_save()
+
+
+def saver_page():
+    return ListPage("SAVER", [SP_BILD, SP_WZ, SP_LZ, SP_HL,
+                                    action("FLYER", lambda: push(TextEntry("FLYER", _fly_set)),
+                                           info=lambda: S["sv"]["fly"][:8]),
+                                    infoline("= IN RANDOM =", lambda: "", vis=_sv_rnd)]
+                    + SP_POOL + [action("SHOW NOW", sv_start)])
+
+
 # ---------------- LEDS (v13.29) ----------------
 
 def rLED(k):
@@ -11396,7 +11477,9 @@ def setup_page():
         link("ENCODER", encoder_page),
         link("MACROS", lambda: ListPage("MACROS", P_MACRO)),
         P_AUDIO, P_VBUD, P_FAIL,
-        link("DISPLAY", lambda: ListPage("DISPLAY", [P_BRIGHT, P_DIM, P_DFAST])),
+        link("DISPLAY", lambda: ListPage("DISPLAY", [P_BRIGHT, P_DIM,
+                                                    link("SAVER IMAGES", saver_page),
+                                                    P_DFAST])),
         link("WLAN", wlan_page),
         link("CLOCK", takt_page),
         action("MOUNT SD", _sd_remount_act, info=lambda: "OK" if BASE == "/sd/" else "-"),
@@ -12074,33 +12157,587 @@ def render(force=False):
         meas("flush", t0)
 
 
-_saver_next = 0
-_saver_pos = 0
+# ---------------- Bildschirmschoner (v13.30) ----------------
+# Eight images run in random order; after IDLE a slowly pulsing
+# dolphin outline takes over. Every image redraws the whole frame
+# sent are only changed bands (flush_display). During playback
+# at most one image every SV_RUN_MS with the band budget,
+# so that timing comes first. Integer maths, so that MicroPython
+# allocates as little memory per image as possible.
+
+SV_TERM = 3
+SV_IDLE = 8
+SV_TEXT = 9
+SV_WZ = (1, 2, 5, 10)            # CHANGE after minutes
+SV_LZ = (30, 60, 240)            # IDLE after minutes
+SV_KONTRAST = (20, 60, 120)
+SV_RUN_MS = 400                  # frame interval during playback
+SV_IDLE_MS = 200                 # frame interval when stopped
+SV_BANDS = 12                    # SPECTRUM bands
+SV_BANDS_STOP = 4                # bands per pass with the sequencer stopped
+
+_SIN = [int(127 * math.sin(6.2832 * i / 64)) for i in range(64)]
+
+
+def _sn(i):
+    return _SIN[i & 63]
+
+
+def _cs(i):
+    return _SIN[(i + 16) & 63]
+
+
+# dolphin as pixel image (facing right, "#" = on), drawn as column
+# runs - so it can be scaled, mirrored and tilted.
+_SV_DOL = (
+    ".............##.................",
+    "..............###...............",
+    "..............####..............",
+    ".............#########..........",
+    "#........###############........",
+    "##....####################......",
+    ".##########################.....",
+    ".###########################....",
+    ".#########################.###..",
+    "##......#######################.",
+    "............###########.........",
+    "....................##..........",
+    "...................##...........",
+    "..................##............",
+)
+
+
+def _sv_prep():
+    h = len(_SV_DOL)
+    w = max([len(r) for r in _SV_DOL])
+
+    def on(x, y):
+        return 0 <= y < h and 0 <= x < len(_SV_DOL[y]) and _SV_DOL[y][x] == "#"
+
+    cols = []
+    for x in range(w):
+        y = 0
+        while y < h:
+            if on(x, y):
+                y0 = y
+                while on(x, y):
+                    y += 1
+                cols.append((x, y0, y - y0))
+            else:
+                y += 1
+    out = []
+    for y in range(h):
+        for x in range(w):
+            if on(x, y) and not (on(x - 1, y) and on(x + 1, y) and on(x, y - 1) and on(x, y + 1)):
+                out.append((x, y))
+    return w, h, tuple(cols), tuple(out)
+
+
+SV_DW, SV_DH, _SV_COLS, _SV_OUT = _sv_prep()
+# ASCII dolphin for TERMINAL: one character per 2x2 pixels by density
+
+
+def _sv_ascii():
+    out = []
+    for y in range(0, SV_DH, 2):
+        ln = ""
+        for x in range(0, SV_DW, 2):
+            n = 0
+            for yy in (y, y + 1):
+                r = _SV_DOL[yy] if yy < SV_DH else ""
+                n += (r[x:x + 2]).count("#")
+            ln += " .:%#"[n]
+        out.append(ln.rstrip())
+    return tuple(out)
+
+
+_SV_ASC = _sv_ascii()
+
+
+def sv_dol(x, y, s=2, c=W, k=0, flip=False, mode=0):
+    # k = tilt in 1/16 pixel per column (+ = nose down);
+    # mode 0 solid, 1 outline, 2 halftone dots
+    w1 = SV_DW - 1
+    mid = SV_DW // 2
+    if mode == 1:
+        for px, py in _SV_OUT:
+            xx = w1 - px if flip else px
+            fb.fill_rect(x + xx * s, y + py * s + ((k * (px - mid) * s) >> 4), s, s, c)
+        return
+    d = s - 1 if s > 1 else 1
+    for px, py, n in _SV_COLS:
+        xx = w1 - px if flip else px
+        yy = y + py * s + ((k * (px - mid) * s) >> 4)
+        if mode == 2:
+            for j in range(n):
+                fb.fill_rect(x + xx * s, yy + j * s, d, d, c)
+        else:
+            fb.fill_rect(x + xx * s, yy, s, n * s, c)
+
+
+def sv_clock(t):
+    # (position in 1/16 beat, running). Sequencer stopped: one beat
+    # every 2 s so the images still move calmly.
+    if S["run"] and _origin is not None:
+        tk = _seq_ticks()
+        if tk is not None and tk >= _origin:
+            return (tk - _origin) * 16 // TICKS_PER_BEAT, True
+    return t * 16 // 2000, False
+
+
+_sv_pl = [None, None]    # last beat, last drum step
+
+
+def sv_pulse(b16, run):
+    # True if a bass drum (row 1 of the drum track) came since the last
+    # image - without a bass drum in the pattern: every beat.
+    beat = b16 >> 4
+    d = S["drm"]
+    rt = RTS[DRUM]
+    if run and not d["mute"] and rt.step >= 0:
+        n0 = d["lens"][0]
+        has = False
+        for i in range(n0):
+            if drum_cell(0, i):
+                has = True
+                break
+        if has:
+            st = rt.step
+            last = _sv_pl[1]
+            _sv_pl[1] = st
+            _sv_pl[0] = beat
+            if last is None or st == last:
+                return False
+            for i in range(1, (st - last) % DRUM_BAR + 1):
+                if drum_cell(0, ((last + i) % DRUM_BAR) % n0):
+                    return True
+            return False
+    hit = _sv_pl[0] is not None and beat != _sv_pl[0]
+    _sv_pl[0] = beat
+    return hit
+
+
+_sv = {"cur": SV_TEXT, "t0": 0, "sw": 0, "next": 0, "flush": False, "idle": False}
+_svd = {}                # state of the running image
+_sv_mq = []              # MIDI bytes for TERMINAL
+_sv_clk = [0]
+_sv_gc = []              # Goertzel coefficients (x4096) for SPECTRUM
+
+
+def sv_midi(m):
+    # from midi_dispatch, only while TERMINAL runs; clock only every 24th
+    if not len(m):
+        return
+    if m[0] == 0xF8:
+        _sv_clk[0] += 1
+        if _sv_clk[0] % 24:
+            return
+    if len(_sv_mq) < 16:
+        _sv_mq.append(" ".join(["%02X" % v for v in m[:3]]))
+
+
+def _sv_rise(d, t):
+    lt = d.get("lt", t)
+    d["lt"] = t
+    dt = time.ticks_diff(t, lt)
+    return 500 if dt > 500 else dt
+
+
+def sv_jump(el):
+    b16, run = sv_clock(now())
+    d = _svd
+    if run:
+        bar = b16 >> 6
+        p = b16 & 63
+        if d.get("bar") != bar:
+            d["bar"] = bar
+            d["x0"] = rnd(24)
+            d["fl"] = rnd(2)
+        p = p * 2 if p < 32 else -1         # jumps during the first 2 beats
+    else:
+        cyc = el // 6000
+        if d.get("bar") != cyc:
+            d["bar"] = cyc
+            d["x0"] = rnd(24)
+            d["fl"] = rnd(2)
+        p = (el % 6000) * 64 // 2500
+        if p >= 64:
+            p = -1
+    if p >= 0:
+        w = SV_DW * 2
+        x = d["x0"] + p * 5 // 8
+        if d["fl"]:
+            x = 128 - w - x
+        y = 92 - ((_sn(p >> 1) * 64) >> 7)
+        sv_dol(x, y, 2, 13, (p - 32) >> 2, bool(d["fl"]))
+        if p < 8 or p > 54:
+            sx = x + (w - 8 if (p < 8) == bool(d["fl"]) else 0)
+            for _ in range(4):
+                fb.fill_rect(sx + rnd(14), 98 - rnd(10), 2, 2, 6 + rnd(6))
+    ph = el // 60
+    for i, yb, am, c in ((0, 108, 4, 8), (1, 116, 3, 5), (2, 123, 2, 3)):
+        for xx in range(0, 128, 2):
+            fb.fill_rect(xx, yb + ((_sn(xx + ph * (i + 1) + i * 20) * am) >> 7), 2, 1, c)
+
+
+def sv_sonar(el):
+    b16, run = sv_clock(now())
+    t = now()
+    d = _svd
+    cx = cy = 64
+    for r in (20, 40, 60):
+        for i in range(0, 64, 2):
+            fb.pixel(cx + ((_cs(i) * r) >> 7), cy + ((_sn(i) * r) >> 7), 2)
+    fb.hline(4, cy, 120, 1)
+    fb.vline(cx, 4, 120, 1)
+    a = (b16 if run else el * 64 // 4000) & 63     # running: one turn per bar
+    for j, c in ((3, 2), (2, 3), (1, 5), (0, 11)):
+        aa = (a - j) & 63
+        LN(cx, cy, cx + ((_cs(aa) * 60) >> 7), cy + ((_sn(aa) * 60) >> 7), c)
+    bl = d.get("bl")
+    if bl is None:
+        bl = d["bl"] = [[rnd(64), 18 + rnd(38), time.ticks_add(t, -9999)] for _ in range(3)]
+        d["a"] = a
+    la = d["a"]
+    d["a"] = a
+    sweep = (a - la) & 63
+    for b in bl:
+        if 0 < ((b[0] - la) & 63) <= sweep:
+            b[2] = t                         # hit by the beam
+        age = time.ticks_diff(t, b[2])
+        c = 13 - age // 250
+        if c > 0:
+            sv_dol(cx + ((_cs(b[0]) * b[1]) >> 7) - SV_DW // 2,
+                   cy + ((_sn(b[0]) * b[1]) >> 7) - SV_DH // 2, 1, c, 0, 16 < b[0] < 48)
+        elif age > 8000:
+            b[0] = rnd(64)
+            b[1] = 18 + rnd(38)
+            b[2] = time.ticks_add(t, -4000)
+    pg = d.get("pg") or []
+    if sv_pulse(b16, run):
+        pg.append(t)
+    keep = []
+    for p0 in pg:
+        age = time.ticks_diff(t, p0)
+        if age < 900:
+            keep.append(p0)
+            r = age * 64 // 900
+            c = 9 - age // 110
+            for i in range(64):
+                fb.pixel(cx + ((_cs(i) * r) >> 7), cy + ((_sn(i) * r) >> 7), c)
+    d["pg"] = keep
+
+
+def sv_tunnel(el):
+    b16, run = sv_clock(now())
+    t = now()
+    d = _svd
+    dt = _sv_rise(d, t)
+    bo = d.get("bo", 0)
+    if sv_pulse(b16, run):
+        bo = 40                              # kick: short push
+    d["bo"] = bo * 3 // 4
+    sp = (S["tempo"] if run else 30) * (10 + bo) // 10
+    ph = (d.get("ph", 0) + dt * sp // 60) % 1000
+    d["ph"] = ph
+    cx = 64 + ((_sn(el // 40) * 8) >> 7)
+    cy = 64 + ((_cs(el // 55) * 6) >> 7)
+    for k in ((0, 0), (127, 0), (0, 127), (127, 127)):
+        LN(cx, cy, k[0], k[1], 1)
+    for i in range(6):
+        q = (i * 1000 + ph) // 60           # depth 0..100
+        s = 4 + 124 * q * q // 10000
+        FR(cx - s // 2, cy - s // 2, s, s, 1 + q * 11 // 100)
+    sv_dol(cx - SV_DW, cy - SV_DH + ((_sn(el // 30) * 4) >> 7), 2, 14, (_sn(el // 50) * 4) >> 7)
+
+
+def sv_term(el):
+    t = now()
+    run = S["run"]
+    d = _svd
+    ln = d.get("ln")
+    if ln is None:
+        ln = d["ln"] = []
+    dt = _sv_rise(d, t)
+    v = dt * (40 if run else 15) // 1000 or 1
+    for e in ln:
+        e[1] += v
+    while ln and ln[0][1] > 127:
+        ln.pop(0)
+    if not ln or ln[-1][1] >= 11:
+        s = None
+        if _sv_mq:
+            s, c = _sv_mq.pop(0), 10
+        elif rnd(3) == 0:
+            s, c = "%02X %02X" % (rnd(256), rnd(128)), 3
+        if s:
+            ln.append([4 + rnd(2) * 64, 0, s, c])
+    for x, y, s, c in ln:
+        T(s, x, y, max(1, c - y // 32))
+    R(0, 36, 128, 8 * len(_SV_ASC) + 4, 0)
+    for i in range(len(_SV_ASC)):
+        T(_SV_ASC[i], 0, 38 + 8 * i, 12)
+    R(0, 96, 128, 12, 0)
+    T("> K%d %dBPM%s" % (S["cur"], S["tempo"], "_" if (el // 500) & 1 else ""), 4, 98, 10)
+
+
+def sv_flyer(el):
+    b16, run = sv_clock(now())
+    d = _svd
+    lay = ((b16 >> 8) if run else el // 10000) % 3      # every 4 bars / 10 s
+    bar = b16 >> 6
+    strobe = run and d.get("bar") is not None and bar != d["bar"]
+    d["bar"] = bar
+    name = S["sv"]["fly"] or "DOLPHIN"
+    sc = 2 if len(name) <= 7 else 1
+    nw = 8 * sc * len(name)
+    if lay == 0:
+        sv_dol(16, 4, 3, 9, -2, False, 2)
+        ty, sy = 52, 78
+        for i in range(4):
+            for j in range(4 - i):
+                fb.fill_rect(104 + j * 6, 4 + i * 6, 2, 2, 4)
+    elif lay == 1:
+        sv_dol(16, 46, 3, 9, 2, True, 2)
+        ty, sy = 6, 30
+    else:
+        sv_dol(90, 8, 1, 11, 0, False)
+        sv_dol(6, 76, 1, 11, 0, True)
+        ty, sy = 36, 62
+    if strobe:
+        R(4, ty, 120, 20, 0)
+        FR(4, ty, 120, 20, 15)
+        BIG(name, 64 - nw // 2, ty + (2 if sc == 2 else 6), sc, 15)
+    else:
+        R(4, ty, 120, 20, 12)
+        BIG(name, 64 - nw // 2, ty + (2 if sc == 2 else 6), sc, 0)
+    TC("SOUNDSYSTEM", 64, sy, 7)
+    HL(4, 100, 120, 4)
+    T("%d BPM" % S["tempo"], 4, 108, 8)
+    TR("K%d" % S["cur"], 124, 108, 8)
+
+
+def sv_acid(el):
+    a = S["acid"]
+    n = a["steps"]
+    if not S["run"] or a["mute"] or n < 1:
+        sv_jump(el)                          # 303 stopped: JUMP
+        return
+    b16, run = sv_clock(now())
+    pat = a["pats"][a["pat"]]
+    ys = [None if st[0] < 0 else 100 - (st[0] + 12 * st[1] + 12) * 2 for st in pat[:n]]
+    px = b16 * 10 // 4 - 36                  # 10 pixels per step, dolphin at x=36
+    i0 = px // 10
+    for k in range(-1, 15):
+        i = i0 + k
+        x = i * 10 - px
+        y = ys[i % n]
+        if y is None:
+            continue
+        st = pat[i % n]
+        ny = ys[(i + 1) % n]
+        if st[3] and ny is not None:
+            fb.hline(x, y, 5, 9)
+            LN(x + 4, y, x + 10, ny, 9)        # slide = ramp
+        else:
+            fb.hline(x, y, 10, 9)
+            if ny is not None and ny != y:
+                fb.vline(x + 10, min(y, ny), abs(ny - y) + 1, 5)
+        if st[2]:
+            R(x + 3, y - 4, 4, 3, 15)            # accent = crest
+    i = (px + 36) // 10
+    y = ys[i % n]
+    k = 0
+    if y is None:
+        y = 70
+        for j in range(1, n):
+            if ys[(i - j) % n] is not None:
+                y = ys[(i - j) % n] - 8
+                break
+    else:
+        ny = ys[(i + 1) % n]
+        if pat[i % n][3] and ny is not None:
+            k = max(-8, min(8, (ny - y) // 2))
+    sv_dol(36 - SV_DW // 2, y - SV_DH - 1, 1, 14, k)
+
+
+def _sv_coef():
+    out = []
+    for i in range(SV_BANDS):
+        f = 150.0 * (2 ** (i * 6.3 / (SV_BANDS - 1)))     # 150 Hz to about 12 kHz
+        out.append(int(2 * math.cos(6.2832 * f / 44100) * 4096))
+    return out
+
+
+def sv_spec(el):
+    b16, run = sv_clock(now())
+    d = _svd
+    mags = None
+    gb = getattr(amy, "get_output_buffer", None)
+    if gb is not None:
+        try:
+            buf = gb()
+            if buf:
+                smp = array("h", bytes(buf))
+                if not _sv_gc:
+                    _sv_gc.extend(_sv_coef())
+                n2 = 2 * min(len(smp) // 2, 96)
+                mags = []
+                for c in _sv_gc:
+                    s1 = s2 = 0
+                    for j in range(0, n2, 2):         # Goertzel, left channel
+                        s0 = (smp[j] >> 6) + ((c * s1) >> 12) - s2
+                        s2 = s1
+                        s1 = s0
+                    mags.append(abs(s1) + abs(s2))
+        except Exception:
+            mags = None
+    if not mags or not max(mags):
+        # no output buffer: bars from the beat and chance
+        ph = b16 & 15
+        mags = [(16 - ph) * (40 + rnd(60)) * (SV_BANDS - i) // SV_BANDS for i in range(SV_BANDS)]
+    mx = max(d.get("mx", 1) * 9 // 10, max(mags), 1)
+    d["mx"] = mx
+    pk = d.get("pk") or [0] * SV_BANDS
+    best = 0
+    bh = -1
+    for i in range(SV_BANDS):
+        h = mags[i] * 90 // mx
+        pk[i] = max(h, pk[i] - 4)
+        x = 4 + i * 10
+        if h:
+            R(x, 112 - h, 9, h, 4 + h // 18)
+        HL(x, 110 - pk[i], 9, 9)
+        if h > bh:
+            bh = h
+            best = i
+    d["pk"] = pk
+    HL(0, 113, 128, 3)
+    xb = 4 + best * 10
+    for j in range(12):                      # fin on the loudest bar
+        HL(xb + 1, 112 - bh - 12 + j, j * 2 // 3 + 1, 14)
+
+
+def sv_ware(el):
+    b16, run = sv_clock(now())
+    bar = b16 >> 6
+    for k, sp, yy, s, c, fl in ((0, 25, 70, 2, 3, False), (1, 40, 34, 1, 2, True)):
+        w = SV_DW * s
+        x = (el // sp) % (128 + w) - w
+        if fl:
+            x = 128 - x - w
+        sv_dol(x, yy + ((_sn(el // 40 + k * 20) * 3) >> 7), s, c, 0, fl)
+    ox = (20, 64, 108)[bar % 3]
+    sw = (_sn(el // 25) * 30) >> 7
+    dr = 1 if bar & 1 else -1                # direction changes every bar
+    for i in range(7):
+        LN(ox, 0, ox + dr * ((i - 3) * 28 + sw), 127, (6, 9, 5, 11, 5, 9, 6)[i])
+    for _ in range(12):
+        fb.pixel(rnd(128), 20 + rnd(100), 1 + rnd(2))
+
+
+def sv_idle(el):
+    d = _svd
+    p = el // 60000                          # a new place every minute
+    if d.get("p") != p:
+        d["p"] = p
+        d["x"] = rnd(128 - 2 * SV_DW)
+        d["y"] = 8 + rnd(112 - 2 * SV_DH)
+        d["fl"] = rnd(2)
+    c = 1 + (((_sn(el // 125) + 127) * 5) >> 8)    # 1..5, period 8 s
+    sv_dol(d["x"], d["y"], 2, c, 0, bool(d["fl"]), 1)
+
+
+def sv_text(el):
+    p = (el // 5000 * 37) % 90
+    T("DOLPHIN", 8 + p // 2, 20 + p, GH + 1)
+    if S["run"]:
+        T("%d BPM" % S["tempo"], 8 + p // 2, 32 + p, GH)
+
+
+SV_DRAW = (sv_jump, sv_sonar, sv_tunnel, sv_term, sv_flyer, sv_acid, sv_spec, sv_ware,
+           sv_idle, sv_text)
+
+
+def sv_pick(t):
+    x = S["sv"]
+    b = x["bild"]
+    if b == 0:
+        pool = [i for i in range(len(SV_NAMES)) if (x["pool"] >> i) & 1]
+        if len(pool) > 1 and _sv["cur"] in pool:
+            pool.remove(_sv["cur"])
+        c = pool[rnd(len(pool))] if pool else SV_TEXT
+    else:
+        c = b - 1 if b <= len(SV_NAMES) else SV_TEXT
+    _sv["cur"] = c
+    _sv["sw"] = t
+    _sv["next"] = t
+    _svd.clear()
+    del _sv_mq[:]
+
+
+def sv_start():
+    global _saver
+    _saver = True
+    t = now()
+    _sv["t0"] = t
+    _sv["idle"] = False
+    _sv["flush"] = False
+    _sv["cur"] = -1
+    _sv_pl[0] = _sv_pl[1] = None
+    sv_pick(t)
+    if HAS_CONTRAST:
+        display_contrast(SV_KONTRAST[S["sv"]["hl"]])
+
+
+def sv_service():
+    t = now()
+    x = S["sv"]
+    budget = FLUSH_BANDS_RUN if S["run"] else SV_BANDS_STOP
+    if _sv["flush"]:
+        _sv["flush"] = not flush_display(budget)
+        return
+    if time.ticks_diff(t, _sv["next"]) < 0:
+        return
+    if not _sv["idle"] and time.ticks_diff(t, _sv["t0"]) >= SV_LZ[x["lz"]] * 60000:
+        _sv["idle"] = True
+        sv_pick(t)
+        _sv["cur"] = SV_IDLE
+        if HAS_CONTRAST:
+            display_contrast(SV_KONTRAST[0])
+    elif (not _sv["idle"] and x["bild"] == 0
+          and time.ticks_diff(t, _sv["sw"]) >= SV_WZ[x["wz"]] * 60000):
+        sv_pick(t)
+    c = _sv["cur"]
+    fast = _fast_ok and S["dfast"]
+    if c == SV_TEXT:
+        iv = 5000
+    elif c == SV_IDLE:
+        iv = 400
+    elif S["run"]:
+        iv = SV_RUN_MS if fast else 1000
+    else:
+        iv = SV_IDLE_MS if fast else 400
+    _sv["next"] = time.ticks_add(t, iv)
+    t0 = time.ticks_us()
+    try:
+        fb.fill(0)
+        SV_DRAW[c](time.ticks_diff(t, _sv["sw"]))
+    except Exception as e:
+        print("SCHONER", c, e)
+    meas("draw", t0)
+    _sv["flush"] = not flush_display(budget)
 
 
 def service_saver():
-    global _saver, _saver_next, _saver_pos
     if _saver:
-        if since(_saver_next) >= 0:
-            _saver_next = time.ticks_add(now(), 5000)
-            _saver_pos = (_saver_pos + 37) % 90
-            try:
-                fb.fill(0)
-                T("DOLPHIN", 8 + _saver_pos // 2, 20 + _saver_pos, GH + 1)
-                if S["run"]:
-                    T("%d BPM" % S["tempo"], 8 + _saver_pos // 2, 32 + _saver_pos, GH)
-            except Exception:
-                pass
-            refresh()
+        sv_service()
         return
     m = S["dim"]
     if not m or top().custom or _btn_down:
         return
     if since(_last_input) > m * 60000:
-        _saver = True
-        _saver_next = 0
-        if HAS_CONTRAST:
-            display_contrast(20)
+        sv_start()
 
 
 # ================================================================

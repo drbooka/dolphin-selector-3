@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – User Manual
 
-Version 13.29 · 28 Oct 2026 · AMYboard in a Eurorack case · English edition
+Version 13.30 · 28 Oct 2026 · AMYboard in a Eurorack case · English edition
 
 This manual describes the English edition of the sketch (`sketch_v13.19_en.py`), where all menus are in English. The German edition works the same way. Saved settings and scenes can be used by both.
 
@@ -218,6 +218,7 @@ HOME (start page)
         ├─ MACROS ─► MACRO 1–4
         ├─ AUDIO (STEREO/MONO) · VOICES MAX · FAILSAFE
         ├─ DISPLAY ─► BRIGHTNESS · SAVER AFTER · UPDATE (FULL/BANDS)
+        │   └─ SAVER IMAGES ─► IMAGE · CHANGE · IDLE · CONTRAST · FLYER · selection (8 images) · SHOW NOW
         ├─ WLAN ─► STATUS · IP · NETWORK · CONNECT · RE-ENTER · DISCONNECT
         ├─ CLOCK ─► SEQ OUTPUT (DIRECT/AHEAD) · LOOKAHEAD · AHEAD TEST · UI CLOCK ·
         │           FALLBACK · TRANSPORT · status displays
@@ -497,6 +498,30 @@ The sampler has **8 slots** (S1–S8). A slot points to a WAV file on the SD car
 - **ENCODER:** **DEVICES** shows the detected extra devices (e.g. `M5+2QUAD`). Below that SET, DIRECTION, **LEDS** and the overview of all connected encoders E1–E8 and Q1–Q8 (see section 1).
 - **FAILSAFE** limits the CPU load. Under overload, voices are switched off instead of crackling.
 - **DISPLAY:** **BRIGHTNESS** (contrast), **SAVER AFTER** (dims after 1–30 min without input; the first input only wakes it up), **UPDATE** BANDS = only send changed parts of the image (keeps the timing steady), FULL = always the whole image (if the image looks wrong).
+- **DISPLAY › SAVER IMAGES (v13.30):** The screensaver shows dolphins that react to the music:
+
+  | Image | What happens | Reacts to |
+  |---|---|---|
+  | **JUMP** | a dolphin jumps out of the waves | running: once per bar, otherwise every 6 s |
+  | **SONAR** | radar beam, dolphins light up as echoes | every bass drum sends a ping ring |
+  | **TUNNEL** | a dolphin flies through a tunnel of rectangles | tempo, the bass drum gives a push |
+  | **TERMINAL** | falling hex code, ASCII dolphin, line with channel and BPM | the real MIDI bytes arriving |
+  | **FLYER** | rave poster with name, halftone dolphin, BPM and channel | new layout every 4 bars, strobe flash on bar 1 |
+  | **ACID LINE** | a dolphin surfs the 303 line (slides = ramps, accents = crests) | 303 pattern; with the 303 stopped JUMP appears |
+  | **SPECTRUM** | 12 frequency bars, a fin on the loudest | the audio output |
+  | **WAREHOUSE** | laser lines and dolphin shadows in the haze | direction changes every bar |
+
+  - **IMAGE:** **RANDOM** (default) changes randomly between the selected images, never the same twice in a row. Or one fixed image, or **TEXT** (the previous calm saver).
+  - **CHANGE:** the next image comes after 1, 2 (default), 5 or 10 minutes.
+  - **IDLE:** after **30 MIN** (default), **1 H** or **4 H** of saver the **idle signal** takes over: a slowly pulsing dolphin outline that moves to a new place every minute, at the lowest contrast. Protects the display overnight.
+  - **CONTRAST:** DARK, MEDIUM (default) or BRIGHT while the saver runs.
+  - **FLYER:** name on the flyer (character wheel, up to 10 characters, default DOLPHIN).
+  - **Selection:** each of the 8 images ON/OFF for the random mode. If all are off, TEXT runs.
+  - **SHOW NOW** starts the saver right away – to try it out. Any input wakes it up again.
+  - **SAVER AFTER** still decides when it starts.
+  - Timing comes first: during playback at most one image every 0.4 s, sent in bands. When stopped every 0.2 s.
+
+  ![The screensavers (simulation, simplified font)](img/en/screen_savers.png)
 - **CLOCK:**
   - **SEQ OUTPUT AHEAD** (default): notes are computed **LOOKAHEAD** (default 250 ms) in advance and played tick-accurately by AMY – display, encoders and saving cannot shift the timing. **DIRECT** plays immediately (for comparison only).
   - **AHEAD TEST:** one clap now, then two more, 2 beats apart each. If all three sound at once, the firmware does not schedule ahead → set SEQ OUTPUT to DIRECT.
