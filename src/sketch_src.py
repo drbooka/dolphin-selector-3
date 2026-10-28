@@ -1,6 +1,6 @@
 # ================================================================
 # DOLPHIN SELECTOR 3  -  AMYboard Eurorack Synth  -  sketch.py
-# Version 13.28 (27.10.2026) - Anzeige GLAETTUNG
+# Version 13.29 (28.10.2026) - LEDS
 # ================================================================
 #
 # Hardware (unveraendert):
@@ -66,6 +66,24 @@
 # ZUSTAND: /sd/dolphin_state.json (sonst Flash). Beim ersten Start
 # werden die Dateien von v11 (amyboard_state*.txt) uebernommen und
 # NICHT geloescht. Szenen: dolphin_scenes.json.
+#
+# NEU IN v13.29:
+#   - LED des Navigations-Encoders (Single #5880) wird genutzt: FARBE
+#     (ab Werk die Farbe des aktuellen Kanals), EDIT (anders, solange ein
+#     Wert bearbeitet wird), TAKT (Blitz auf jeden Schlag, Takt 1 weiss),
+#     KANAL-BLITZ beim Kanalwechsel, PANIC (gelb nach rot beim Halten),
+#     WARNUNG (blinkt bei CLIP am AUDIO IN, hoher CPU-Last, Speicherfehler).
+#     Jede Anzeige hat eine waehlbare Farbe oder AUS.
+#   - Zusatz-Encoder: ZUSTAND (gedimmt = ohne Wirkung: SEITE ohne Wert auf
+#     dieser Seite, Kanal stumm oder leer, Parameter ausgeblendet; AUF DRUCK
+#     vorgemerkt = blinkt; Funktion AUS mit Taster START/MUTE/AUDIO IN/TAP/
+#     ENC-SET zeigt den Taster-Zustand), DREH-BLITZ, neue LED-Farbe KANAL.
+#   - SETUP > ENCODER > LEDS: alle Einstellungen, HELLIGKEIT (4 Stufen fuer
+#     alle LEDs), IM SCHONER (LEDs aus/an), LED-TEST. SETUP > INFO > NAV-LED.
+#   - Gesendet wird nur bei Aenderung, waehrend der Wiedergabe hoechstens
+#     3 LEDs pro UI-Durchlauf (I2C-Last).
+#   HW-TEST: Leuchtet die LED des Single (Index NAV-LED in SETUP > INFO)?
+#            Richtige LED am richtigen Encoder (LED-TEST)? Takt stabil?
 #
 # NEU IN v13.28:
 #   - VCO > GLAETTUNG: Stufe LEICHT heisst jetzt WENIG. "GLAETTUNG LEICHT"
@@ -463,7 +481,7 @@ try:
 except Exception:
     _random = None
 
-VERSION = "13.28"
+VERSION = "13.29"
 
 
 # ================================================================
@@ -801,6 +819,7 @@ del _nq, _nm, _bb
 LED_PER_DEV = {"m5stack": 8, "adafruit_quad": 4, "adafruit_single": 1}
 ENC_LED = []
 ENC_DEVNO = []
+NAV_LED = None           # v13.29: LED des Navigations-Encoders (Single)
 _lo = 0
 _nq = 0
 _nm = 0
@@ -815,6 +834,8 @@ for _t, _a, _s in _blocks:
         for _i in range(4):
             ENC_LED.append(_lo + _i)
             ENC_DEVNO.append(_nq)
+    elif _t == "adafruit_single" and _s == NAV_ENCODER and NAV_LED is None:
+        NAV_LED = _lo
     _lo += LED_PER_DEV.get(_t, 0)
 del _lo, _nq, _nm
 
@@ -1402,6 +1423,15 @@ def new_vco():
             "sm": 0}
 
 
+def new_led():
+    # v13.29 LEDs: hl Helligkeit 0-3, nav Farbe der Navigation (0 = Kanal,
+    # sonst Index in LED_RGB), ed/bt/pn/wn Farbe fuer EDIT/TAKT/PANIC/
+    # WARNUNG (0 AUTO, 1 AUS = Anzeige aus), cf Kanal-Blitz, st Zustand der
+    # Zusatz-Encoder, fl Dreh-Blitz, sv im Schoner (0 = LEDs aus)
+    return {"hl": 1, "nav": 0, "ed": 0, "bt": 0, "pn": 0, "wn": 0,
+            "cf": 1, "st": 1, "fl": 1, "sv": 0}
+
+
 def new_ain():
     # v13.22 AUDIO IN: an/aus, Modus (0 STEREO, 1 MONO, 2 NUR L, 3 NUR R),
     # Eingangsverstaerkung (dB), Ausgangspegel, Pan, Breite (STEREO), Bus,
@@ -1489,6 +1519,8 @@ def default_state():
         "vco": new_vco(),
         # v13.22: AUDIO IN
         "ain": new_ain(),
+        # v13.29: LEDs
+        "led": new_led(),
     }
     for k, v in TONE_DEF:
         s[k] = [v] * 17
@@ -1728,6 +1760,7 @@ def sanitize():
             c[0] = clamp(c[0], -1.0, 1.0)
             c[1] = clamp(c[1], lo, hi)
     _sanitize_vco()
+    _sanitize_led()
     _sanitize_ain()
     _sanitize_sampler()
 
@@ -1743,6 +1776,15 @@ def _sanitize_encx(lst):
         except Exception:
             out.append(new_encx())
     return out
+
+
+def _sanitize_led():
+    x = S["led"]
+    x["hl"] = clamp_int(x["hl"], 0, 3)
+    for k in ("nav", "ed", "bt", "pn", "wn"):
+        x[k] = clamp_int(x[k], 0, 9)
+    for k in ("cf", "st", "fl", "sv"):
+        x[k] = 1 if x[k] else 0
 
 
 def _sanitize_ain():
@@ -8324,9 +8366,29 @@ for _k in ASSIGN_KEYS:
 
 FUNC_NAMES = ["AUS", "SEITE", "PATCH", "KANAL", "PARAMETER"]
 LED_NAMES = ["AUTO", "AUS", "ROT", "ORANGE", "GELB", "GRUEN", "CYAN", "BLAU",
-             "LILA", "WEISS"]
+             "LILA", "WEISS", "KANAL"]
 LED_RGB = (None, (0, 0, 0), (40, 0, 0), (40, 12, 0), (32, 26, 0), (0, 36, 0),
-           (0, 26, 26), (0, 0, 40), (24, 0, 34), (22, 22, 22))
+           (0, 26, 26), (0, 0, 40), (24, 0, 34), (22, 22, 22), None)
+LED_KANAL = 10           # v13.29: LED-Farbe = Farbe des Kanals
+LED_IND_NAMES = LED_NAMES[:10]               # Anzeigen: AUTO, AUS, Farben
+LED_NAV_NAMES = ["KANAL"] + LED_NAMES[1:10]  # Navigation: 0 = Kanalfarbe
+LED_HELL = (0.5, 1.0, 2.0, 3.5)              # HELLIGKEIT 1-4 (2 = wie bisher)
+
+
+def _hue40(h):
+    # Farbkreis mit Hoechstwert 40 (wie LED_RGB), h = 0..1
+    k = h * 6.0
+    i = int(k) % 6
+    f = k - int(k)
+    u = int(40 * f)
+    d = int(40 * (1.0 - f))
+    return ((40, u, 0), (d, 40, 0), (0, 40, u), (0, d, 40), (u, 0, 40), (40, 0, d))[i]
+
+
+# Kanalfarben 1-16 einmal rund um den Farbkreis (Kanal 1 orange)
+CH_RGB = [None] + [_hue40((c - 1) / 16.0 + 0.06) for c in range(1, 17)]
+_led_flash = {}          # Slot -> Zeit des letzten Drehens (DREH-BLITZ)
+
 
 
 def enc_func(f):
@@ -11004,7 +11066,8 @@ P_ESET = P("SET", kind=ENUM, opts=ESET_NAMES, vals=[0, 1, 2], confirm=True,
 
 class EncOverviewPage(ListPage):
     def __init__(self):
-        items = [infoline("GERAETE", _devs_text), P_ESET, P_INV]
+        items = [infoline("GERAETE", _devs_text), P_ESET, P_INV,
+                 link("LEDS", led_page, vis=lambda: _leds_n() > 0)]
         self._row = {}
         last = None
         for i in range(len(ENC_SLOT)):
@@ -11038,6 +11101,54 @@ def _devs_text():
 
 def encoder_page():
     return EncOverviewPage()
+
+
+# ---------------- LEDS (v13.29) ----------------
+
+def rLED(k):
+    return lambda: (S["led"], k)
+
+
+def _leds_n():
+    try:
+        return enc.leds if enc is not None else 0
+    except Exception:
+        return 0
+
+
+def _nav_led_ok():
+    return NAV_LED is not None and NAV_LED < _leds_n()
+
+
+def _led_upd():
+    update_leds()
+
+
+LP_HELL = P("HELLIGKEIT", rLED("hl"), kind=ENUM, opts=["1", "2", "3", "4"], apply=_led_upd)
+LP_NAV = P("FARBE", rLED("nav"), kind=ENUM, opts=LED_NAV_NAMES, apply=_led_upd,
+           vis=_nav_led_ok)
+LP_ED = P("EDIT", rLED("ed"), kind=ENUM, opts=LED_IND_NAMES, apply=_led_upd, vis=_nav_led_ok)
+LP_BT = P("TAKT", rLED("bt"), kind=ENUM, opts=LED_IND_NAMES, apply=_led_upd, vis=_nav_led_ok)
+LP_CF = P("KANAL-BLITZ", rLED("cf"), kind=BOOL, vis=_nav_led_ok)
+LP_PN = P("PANIC", rLED("pn"), kind=ENUM, opts=LED_IND_NAMES, vis=_nav_led_ok)
+LP_WN = P("WARNUNG", rLED("wn"), kind=ENUM, opts=LED_IND_NAMES, apply=_led_upd,
+          vis=_nav_led_ok)
+LP_ST = P("ZUSTAND", rLED("st"), kind=BOOL, apply=_led_upd, vis=lambda: bool(ENC_LED))
+LP_FL = P("DREH-BLITZ", rLED("fl"), kind=BOOL, vis=lambda: bool(ENC_LED))
+LP_SV = P("IM SCHONER", rLED("sv"), kind=ENUM, opts=["AUS", "AN"])
+
+
+def led_page():
+    return ListPage("LEDS", [
+        infoline("SINGLE", lambda: "JA" if _nav_led_ok() else "FEHLT"),
+        LP_HELL,
+        infoline("= NAVIGATION =", lambda: "", vis=_nav_led_ok),
+        LP_NAV, LP_ED, LP_BT, LP_CF, LP_PN, LP_WN,
+        infoline("= ZUSATZ-ENC =", lambda: "", vis=lambda: bool(ENC_LED)),
+        LP_ST, LP_FL,
+        infoline("= ALLGEMEIN =", lambda: ""),
+        LP_SV,
+        action("LED-TEST", led_test)])
 
 
 def _wifi_new():
@@ -11113,6 +11224,7 @@ def info_page():
         infoline("VCO-SYNTH", lambda: "%d" % VCO_SYNTH if VCO_SYNTH else "FEHLT"),
         infoline("AUDIO IN", lambda: "%d/%d" % AIN_SYNTHS if AIN_SYNTHS else "FEHLT"),
         infoline("DX7 SD (FM)", lambda: "JA" if fm_mod() else "NEIN"),
+        infoline("NAV-LED", lambda: ("%d" % NAV_LED) if _nav_led_ok() else "KEINE"),
         link("I2C", i2c_scan_page, info=_i2c_count),
         infoline("RAM FREI", _free_mem),
         infoline("LAST", lambda: "%d%%" % int(cpu_load * 100)),
@@ -11535,6 +11647,7 @@ def read_param_encoders():
         if not d:
             continue
         _last_param[i] = pos
+        _led_flash[sl] = now()          # v13.29: DREH-BLITZ
         if S["inv"]:
             d = -d
         if wake():
@@ -11647,28 +11760,254 @@ def read_param_buttons():
                 enc_button_action(sl, False)
 
 
-_led_sent = {}
+# ---------------- LEDs (v13.29) ----------------
+# Ein Dienst fuer alle LEDs. Je UI-Durchlauf bekommt jede LED eine
+# Wunschfarbe; gesendet wird nur bei Aenderung (jede LED kostet 1-2
+# I2C-Zugriffe), waehrend der Wiedergabe hoechstens LED_SENDS_RUN.
+#
+# Navigation (Single), Vorrang von oben nach unten:
+#   IM SCHONER AUS + Schoner     -> dunkel
+#   PANIC halten (SPIELEN)       -> gelb nach rot
+#   Kanalwechsel                 -> Kanalfarbe hell, CHFLASH_MS
+#   Warnung                      -> blinkt
+#   Schlag (Sequencer laeuft)    -> Blitz, Takt 1 weiss
+#   Bearbeiten                   -> EDIT-Farbe statt FARBE
+#   sonst                        -> FARBE
+# Zusatz-Encoder: Farbe wie bisher (AUTO, fest, neu KANAL), dazu ZUSTAND
+# (gedimmt = ohne Wirkung, AUF DRUCK vorgemerkt = blinkt) und DREH-BLITZ.
+
+_led_sent = {}           # LED-Index -> zuletzt gesendete Farbe
+_led_ch_prev = [None]
+_led_ch_t = [0]          # Zeit des letzten Kanalwechsels
+_led_test = [None]       # Startzeit des LED-TESTS
+_led_page = [None, 0, {}]  # Seite, naechste Pruefung, Slot -> SEITE hat Wert
+LED_SENDS_RUN = 3
+LED_DIM = 0.18           # gedimmt = ohne Wirkung
+LED_FLASH = 2.5          # Blitz-Faktor
+LED_FLASH_MS = 150
+LED_CHFLASH_MS = 600
+LED_BEAT_TICKS = 12      # Schlag-Blitz: erstes Viertel des Schlags
+LED_TEST_MS = 2400
+LED_TEST_COL = (2, 5, 7, 9)   # ROT GRUEN BLAU WEISS
 
 
-def update_leds():
+def _lsc(rgb, f=1.0):
+    # Farbe mal Faktor mal HELLIGKEIT; was leuchten soll, bleibt sichtbar
+    if rgb is None:
+        return (0, 0, 0)
+    f *= LED_HELL[S["led"]["hl"]]
+    out = []
+    for v in rgb:
+        if v:
+            v = int(v * f)
+            v = 1 if v < 1 else (255 if v > 255 else v)
+        out.append(v)
+    return (out[0], out[1], out[2])
+
+
+def led_beat():
+    # 0 = kein Schlag, 1 = Schlag, 2 = Takt 1 (aus AMYs Sequencer-Zaehler)
+    if not S["run"] or _origin is None:
+        return 0
+    t = _seq_ticks()
+    if t is None:
+        return 0
+    r = t - _origin
+    if r < 0 or r % TICKS_PER_BEAT >= LED_BEAT_TICKS:
+        return 0
+    return 2 if (r // TICKS_PER_BEAT) % 4 == 0 else 1
+
+
+def led_warning():
+    return (ain_clipping(0) or ain_clipping(1) or _load_warned or bool(_save_err))
+
+
+def nav_editing():
+    if not STACK:
+        return False
+    p = STACK[-1]
+    return isinstance(p, EditPage) or bool(getattr(p, "edit", False))
+
+
+def _nav_rgb(t):
+    x = S["led"]
+    if _saver and not x["sv"]:
+        return (0, 0, 0)
+    if _hold_progress and x["pn"] != 1:
+        h = _hold_progress
+        if x["pn"] == 0:
+            return _lsc((40, int(30 * (1.0 - h)), 0), 1.0 + h)
+        return _lsc(LED_RGB[x["pn"]], 0.5 + 1.5 * h)
+    if x["cf"] and time.ticks_diff(t, _led_ch_t[0]) < LED_CHFLASH_MS:
+        return _lsc(CH_RGB[S["cur"]], LED_FLASH)
+    if x["wn"] != 1 and led_warning():
+        if (t // 125) % 2:
+            return (0, 0, 0)
+        return _lsc(LED_RGB[2 if x["wn"] == 0 else x["wn"]], 1.5)
+    base = CH_RGB[S["cur"]] if x["nav"] == 0 else LED_RGB[x["nav"]]
+    if x["ed"] != 1 and nav_editing():
+        base = LED_RGB[9 if x["ed"] == 0 else x["ed"]]
+    if x["bt"] != 1:
+        b = led_beat()
+        if b:
+            if x["bt"] == 0:
+                if b == 2 or not any(base):
+                    return _lsc(LED_RGB[9], 2.0)
+                return _lsc(base, LED_FLASH)
+            return _lsc(LED_RGB[x["bt"]], 2.0 if b == 2 else 1.2)
+    return _lsc(base)
+
+
+def _btn_state(a):
+    # Funktion AUS: die LED zeigt den Zustand des Tasters
+    if a == "START":
+        on, c = S["run"], 5
+    elif a.startswith("MUTE"):
+        on, c = S["mute"][int(a[4:])], 2
+    elif a == "M303":
+        on, c = S["acid"]["mute"], 2
+    elif a == "MDRM":
+        on, c = S["drm"]["mute"], 2
+    elif a == "AIN":
+        on, c = S["ain"]["on"], 6
+    elif a == "TAP":
+        return _lsc(LED_RGB[9], LED_FLASH if led_beat() else LED_DIM)
+    elif a == "ESET":
+        return _lsc(LED_RGB[(9, 4, 8)[S["eset"]]])
+    else:
+        return None
+    return _lsc(LED_RGB[c], 1.0 if on else LED_DIM)
+
+
+def _led_page_scan(p, t):
+    # Welche SEITE-Encoder haben auf der offenen Seite einen Wert?
+    # Bei Seitenwechsel sofort, sonst alle 300 ms.
+    if p is _led_page[0] and time.ticks_diff(t, _led_page[1]) < 0:
+        return
+    _led_page[0] = p
+    _led_page[1] = time.ticks_add(t, 300)
+    d = {}
+    seen = {}
+    get = p.enc_param
+    if isinstance(p, ListPage):
+        # ListPage: Zeilen nur einmal auswerten (enc_param filtert sonst je Wert)
+        nums = [it for it in p.items() if it.kind == NUM]
+        get = lambda k: nums[k] if k < len(nums) else None
+    for sl in ENC_SLOT:
+        if S["encf"][sl] != "SCREEN":
+            continue
+        k = enc_page_index(sl)
+        if k not in seen:
+            try:
+                prm = get(k)
+                vis = getattr(prm, "vis", None)
+                seen[k] = prm is not None and (vis is None or bool(vis()))
+            except Exception:
+                seen[k] = False
+        d[sl] = seen[k]
+    _led_page[2] = d
+
+
+def _slot_rgb(sl, t, jump):
+    x = S["led"]
+    if _saver and not x["sv"]:
+        return (0, 0, 0)
+    ex = S["encx"][sl]
+    f = S["encf"][sl]
+    fn = enc_func(f)
+    li = ex["led"]
+    if li == LED_KANAL:
+        rgb = CH_RGB[enc_patch_ch(f) if fn == 2 else S["cur"]]
+    elif li:
+        rgb = LED_RGB[li]
+    else:
+        if fn == 0 and x["st"]:
+            bs = _btn_state(S["encb"][sl])
+            if bs is not None:
+                return bs
+        rgb = LED_RGB[enc_led_index(sl)]
+    fac = 1.0
+    if x["st"] and not jump:
+        if fn == 1:
+            if not _led_page[2].get(sl, True):
+                fac = LED_DIM
+        elif fn == 2:
+            ch = enc_patch_ch(f)
+            if sl in _enc_pend:
+                if (t // 250) % 2:
+                    fac = LED_DIM
+            elif S["mute"][ch] or (S["pat"][ch] == -1 and not chrom_owns(ch)):
+                fac = LED_DIM
+        elif fn == 4:
+            vis = getattr(REG.get(f), "vis", None)
+            if vis is not None and not vis():
+                fac = LED_DIM
+    if x["fl"] and sl in _led_flash and time.ticks_diff(t, _led_flash[sl]) < LED_FLASH_MS:
+        fac = LED_FLASH
+    return _lsc(rgb, fac)
+
+
+def led_test():
+    _led_test[0] = now()
+    toast("LED-TEST", "R G B W", LED_TEST_MS)
+
+
+def service_leds(force=False):
     if enc is None:
         return
     try:
-        if not enc.leds:
-            return
-        # v13.24: Farbe je Zusatz-Encoder (AUTO nach Funktion oder fest),
-        # nur bei Aenderung senden (Quad-LEDs kosten je 2 I2C-Zugriffe)
+        n = enc.leds
+    except Exception:
+        return
+    if not n:
+        return
+    t = now()
+    want = []
+    try:
+        if S["cur"] != _led_ch_prev[0]:
+            if _led_ch_prev[0] is not None:
+                _led_ch_t[0] = t
+            _led_ch_prev[0] = S["cur"]
+        if _led_test[0] is not None and time.ticks_diff(t, _led_test[0]) >= LED_TEST_MS:
+            _led_test[0] = None
+        tst = None
+        if _led_test[0] is not None:
+            k = time.ticks_diff(t, _led_test[0]) * len(LED_TEST_COL) // LED_TEST_MS
+            tst = _lsc(LED_RGB[LED_TEST_COL[k % len(LED_TEST_COL)]], 1.5)
+        if NAV_LED is not None and NAV_LED < n:
+            want.append((NAV_LED, tst or _nav_rgb(t)))
+        p = STACK[-1] if STACK else None
+        jump = getattr(p, "enc_jump", None) is not None
+        if p is not None and S["led"]["st"] and tst is None:
+            _led_page_scan(p, t)
         for i in range(len(ENC_SLOT)):
             li = ENC_LED[i] if i < len(ENC_LED) else None
-            if li is None or li >= enc.leds:
+            if li is None or li >= n:
                 continue
-            rgb = LED_RGB[enc_led_index(ENC_SLOT[i])]
-            if _led_sent.get(li) == rgb:
-                continue
-            enc.led(li, *rgb)
-            _led_sent[li] = rgb
+            want.append((li, tst or _slot_rgb(ENC_SLOT[i], t, jump)))
     except Exception as e:
         print("LED", e)
+        return
+    budget = 0 if (force or not S["run"]) else LED_SENDS_RUN
+    sent = 0
+    for li, rgb in want:
+        if _led_sent.get(li) == rgb:
+            continue
+        if budget and sent >= budget:
+            break
+        try:
+            enc.led(li, *rgb)
+        except Exception as e:
+            print("LED", e)
+            return
+        _led_sent[li] = rgb
+        sent += 1
+
+
+def update_leds():
+    # alle LEDs sofort neu berechnen und senden (Name seit v13.24)
+    service_leds(True)
+
 
 
 # ================================================================
@@ -12017,6 +12356,10 @@ def ui_service():
         service_load()
         service_save()
         service_saver()
+        try:
+            service_leds()
+        except Exception as e:
+            print("LED", e)
         service_gc()
         render()
     finally:

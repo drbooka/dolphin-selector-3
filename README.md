@@ -2,7 +2,7 @@
 
 A MicroPython sketch that turns the [AMYboard](https://amyboard.com) into a full Eurorack groovebox, fully playable on the module via a 128×128 OLED, rotary encoders and an optional joystick.
 
-**Version 13.24** · runs on current AMYboard firmware (AMY 1.2.16x or newer) · on-screen menus in **English or German**
+**Version 13.29** · runs on current AMYboard firmware (AMY 1.2.16x or newer) · on-screen menus in **English or German**
 
 ## Features
 
@@ -14,7 +14,8 @@ A MicroPython sketch that turns the [AMYboard](https://amyboard.com) into a full
 - **Eurorack:** CV in/out (1 V/oct, gate, LFO with wavefolder, envelope, quantizer, drum triggers), calibration, scope
 - **Audio in:** the stereo input live through gain, distortion, filter and the bus effects – the AMYboard as an effects unit, with level meter
 - **VCO:** the AMYboard as a standalone 1 V/oct oscillator (sub, second detuned osc, wavefolder, FM/PWM/fold via CV, quantized mode, tuning display)
-- **Controls:** navigation encoder, M5Stack 8-encoder and/or up to two Adafruit Quad encoders (every knob assignable to patch select for any channel, channel select or a parameter; assignable buttons; LED colour per knob; three switchable encoder sets), M5Stack joystick
+- **Controls:** navigation encoder, M5Stack 8-encoder and/or up to two Adafruit Quad encoders (every knob assignable to patch select for any channel, channel select or a parameter; assignable buttons; three switchable encoder sets), M5Stack joystick
+- **LEDs:** the navigation encoder's LED shows the channel colour, edit mode, the beat, PANIC progress and warnings; the extra encoders' LEDs show their function and state (dimmed = no effect, blinking = patch pending), every indication with a selectable colour
 
 ## Hardware
 

@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Projektbeschreibung
 
-Stand 27.10.2026 · Sketch-Version 13.28 (13.18 auf der Hardware bestätigt, dazu v13.24–v13.27: AUDIO IN, VCO, IN-Kalibrierung, MIDI-Monitor, weiches Umschalten)
+Stand 28.10.2026 · Sketch-Version 13.29 (13.18 auf der Hardware bestätigt, dazu v13.24–v13.27: AUDIO IN, VCO, IN-Kalibrierung, MIDI-Monitor, weiches Umschalten)
 
 ## Ziel
 
@@ -87,6 +87,7 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 | 13.26 | 27.10.2026 | MIDI-Monitor unter SETUP › MIDI (letzte 8 Ereignisse mit Aktion des Sketches) |
 | 13.27 | 27.10.2026 | Weiches Umschalten (Aus-/Einblenden) bei VCO-WELLE und AUDIO-IN-Filter-/Distortion-Typ, VCO › GLAETTUNG für TONHOEHE FREI |
 | 13.28 | 27.10.2026 | GLAETTUNG-Stufe LEICHT heißt WENIG (passte nicht in die Zeile). Anleitung DE/EN: Tipps und Tricks, 7 bebilderte Patch-Vorschläge für MODULAR (Bilder unter `docs/img/`) |
+| 13.29 | 28.10.2026 | LEDs: Single-LED mit Kanalfarbe, EDIT, TAKT-Blitz, Kanal-Blitz, PANIC-Verlauf und WARNUNG (je Farbe wählbar), Zusatz-Encoder mit ZUSTAND (gedimmt = ohne Wirkung, AUF DRUCK blinkt, Taster-Zustand) und DREH-BLITZ, LED-Farbe KANAL, HELLIGKEIT, IM SCHONER, LED-TEST, INFO › NAV-LED |
 
 ## Offene Punkte (auf der Hardware zu prüfen)
 
@@ -105,6 +106,7 @@ Auf dem Gerät: `dolphin_state.json`, `dolphin_scenes.json` (+ `.tmp`/`.bak`), `
 
 12. **DX7 VON SD (v13.19):** am 26.10.2026 bestätigt – INFO DX7 SD = JA, Stimmen klingen richtig, Wechsel ohne Stocken, SD-Stimme nach Neustart wieder geladen. Bedienung: kein hörbares Holpern beim schnellen Drehen, BEDIENUNG MAX 132 ms (unter den 250 ms Vorlauf).
 13. **Encoder-Menü (v13.24):** am 26.10.2026 mit dem M5Stack bestätigt – Übersicht, Sprung per Drehen, PATCH für beliebigen Kanal, LADEN AUF DRUCK mit Taster, LED-Farben am richtigen Encoder, Sets A/B. Offen: Quad-Teile (LEDs, Q1–Q8), sobald der Ersatz-Quad da ist.
+15. **LEDs (v13.29):** Leuchtet die Single-LED (INFO › NAV-LED, LED-TEST)? Alle LEDs am richtigen Encoder? Takt stabil mit TAKT-Blitz (BEDIENUNG MAX)? Läuft die kommentierte Fassung (403 KB) noch an?
 14. ~~**Pads/Slices über MIDI (v13.19)**~~ – **am 27.10.2026 bestätigt:** Pads (Noten 36–43) und Slices (44+) auf dem PAD-KANAL funktionieren. Die erste Fehlmeldung lag an der Verkabelung; der MIDI-MONITOR (v13.26) bleibt zur Fehlersuche.
 
 ## Stand der Firmware-Neuerungen (Discord #announcements bis 12.09.2026, GitHub bis v1.2.200)

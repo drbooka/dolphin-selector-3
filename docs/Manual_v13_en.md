@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – User Manual
 
-Version 13.28 · 27 Oct 2026 · AMYboard in a Eurorack case · English edition
+Version 13.29 · 28 Oct 2026 · AMYboard in a Eurorack case · English edition
 
 This manual describes the English edition of the sketch (`sketch_v13.19_en.py`), where all menus are in English. The German edition works the same way. Saved settings and scenes can be used by both.
 
@@ -47,7 +47,29 @@ Every encoder page also has **NOW** (current patch or value), **BUTTON** (see be
 - **LOAD ON PRESS** (for live use): turning only shows `K3 > 045 PRESS` and the name; the sound stays. The encoder's button loads the patch. The overview then shows a `*` after the assignment. The BUTTON is set to CONTEXT automatically.
 - If the channel is the sampler's CHROM. channel, `K1 SAMPLER` appears. If a list is empty (e.g. no favourites yet), `LIST EMPTY` appears.
 
-**LED** (M5Stack and quads): **AUTO** shows the function as a colour – PAGE white, PATCH blue, CHANNEL purple, OFF dark, PARAMETER by group (MIXER and SEQ+SCENE yellow, SOUND and DRUMS orange, EFFECTS green, 303 red, MODULAR cyan, AUDIO IN purple). Or a fixed colour: OFF, RED, ORANGE, YELLOW, GREEN, CYAN, BLUE, PURPLE, WHITE.
+**LED** (M5Stack and quads): **AUTO** shows the function as a colour – PAGE white, PATCH blue, CHANNEL purple, OFF dark, PARAMETER by group (MIXER and SEQ+SCENE yellow, SOUND and DRUMS orange, EFFECTS green, 303 red, MODULAR cyan, AUDIO IN purple). Or a fixed colour: OFF, RED, ORANGE, YELLOW, GREEN, CYAN, BLUE, PURPLE, WHITE, or **CHANNEL** (colour of the channel: for PATCH K3 the colour of channel 3, otherwise the current channel – the same colour as on the navigation encoder).
+
+**LEDs (v13.29)** – SETUP › ENCODER › **LEDS**. All LEDs now show what is going on:
+
+| Row | Effect |
+|---|---|
+| **SINGLE** | YES = the LED of the navigation encoder is driven |
+| **BRIGHTNESS** 1–4 | applies to all LEDs, 2 = as before |
+| = NAVIGATION = | |
+| **COLOUR** | base colour: **CHANNEL** (default, each of the 16 channels has its own colour) or a fixed colour |
+| **EDIT** | while a value is being edited (big ring or choice): AUTO = white |
+| **BEAT** | sequencer running: flash on every beat, AUTO = base colour bright and bar 1 white |
+| **CHAN FLASH** | on a channel change, briefly bright in the colour of the new channel |
+| **PANIC** | while holding on HOME: AUTO = yellow to red until PANIC fires |
+| **WARNING** | blinks on CLIP at AUDIO IN (while that page is open), high CPU load or a save error, AUTO = red |
+| = EXTRA ENC = | |
+| **STATE** | dimmed = the encoder has no effect right now: PAGE without a value on this page, PATCH channel muted or empty, PARAMETER hidden. LOAD ON PRESS pending = blinks. Function **OFF** with button START/STOP, MUTE, AUDIO IN, TAP TEMPO or ENC SET: the LED shows the button (START green: running bright, stopped dimmed · MUTE red: muted bright · AUDIO IN cyan · TAP flashes with the beat · ENC SET A white, B yellow, C purple) |
+| **TURN FLASH** | briefly brighter while turning |
+| = GENERAL = | |
+| **IN SAVER** | OFF (default) = LEDs dark while the screensaver runs |
+| **LED TEST** | all LEDs 2.4 s red, green, blue, white |
+
+For every indication, **OFF** switches off only that indication. Priority on the navigation LED: PANIC, channel flash, warning, beat, EDIT, base colour. LEDs are sent only on change, at most 3 per pass during playback, so the timing stays steady.
 
 **Encoder sets A/B/C:** three complete assignments (function, options, button, LED), e.g. one for live and one for sound design. Switch under SETUP › ENCODER › **SET** (turn, press activates) or with the button function **ENC SET >** (A → B → C → A). A new set starts as a copy of the previous one.
 
@@ -189,7 +211,9 @@ HOME (start page)
     │
     └─ SETUP
         ├─ MIDI ─► MIDI THRU · MIDI OUT TYP (A/B) · CLOCK · MONITOR · RST ALL MIDI
-        ├─ ENCODER ─► DEVICES · SET (A/B/C) · DIRECTION · E1–E8 · Q1–Q8 (connected ones only) · I2C-SCAN
+        ├─ ENCODER ─► DEVICES · SET (A/B/C) · DIRECTION · LEDS · E1–E8 · Q1–Q8 (connected ones only) · I2C-SCAN
+        │   ├─ LEDS ─► SINGLE · BRIGHTNESS · COLOUR · EDIT · BEAT · CHAN FLASH · PANIC · WARNING ·
+        │   │          STATE · TURN FLASH · IN SAVER · LED TEST
         │   └─ Ex/Qx ─► FUNCTION · CHANNEL · LIST · LOAD · GROUP · VALUE · NOW · BUTTON · LED
         ├─ MACROS ─► MACRO 1–4
         ├─ AUDIO (STEREO/MONO) · VOICES MAX · FAILSAFE
@@ -198,7 +222,7 @@ HOME (start page)
         ├─ CLOCK ─► SEQ OUTPUT (DIRECT/AHEAD) · LOOKAHEAD · AHEAD TEST · UI CLOCK ·
         │           FALLBACK · TRANSPORT · status displays
         ├─ MOUNT SD · SD STATE NEW · SD TEST
-        ├─ INFO ─► VERSION · ENCODER · EXTRAS · JOYSTICK · DISTORTION · TEMPO SYNC · DX7 SD (FM) · I2C · RAM FREE ·
+        ├─ INFO ─► VERSION · ENCODER · EXTRAS · JOYSTICK · DISTORTION · TEMPO SYNC · DX7 SD (FM) · NAV-LED · I2C · RAM FREE ·
         │          LAST · VOICES · MEMORY · SD · SD REASON · SD CLOCK · SD FREE · SAVE ERROR ·
         │          statistics (BOOT … CONTROLS MAX) · RESET STATS
         └─ FACTORY RESET
@@ -470,7 +494,7 @@ The sampler has **8 slots** (S1–S8). A slot points to a WAV file on the SD car
 
 ### SETUP
 - **RST ALL MIDI** removes the patches from all channels.
-- **ENCODER:** **DEVICES** shows the detected extra devices (e.g. `M5+2QUAD`). Below that SET, DIRECTION and the overview of all connected encoders E1–E8 and Q1–Q8 (see section 1).
+- **ENCODER:** **DEVICES** shows the detected extra devices (e.g. `M5+2QUAD`). Below that SET, DIRECTION, **LEDS** and the overview of all connected encoders E1–E8 and Q1–Q8 (see section 1).
 - **FAILSAFE** limits the CPU load. Under overload, voices are switched off instead of crackling.
 - **DISPLAY:** **BRIGHTNESS** (contrast), **SAVER AFTER** (dims after 1–30 min without input; the first input only wakes it up), **UPDATE** BANDS = only send changed parts of the image (keeps the timing steady), FULL = always the whole image (if the image looks wrong).
 - **CLOCK:**
@@ -484,6 +508,7 @@ The sampler has **8 slots** (S1–S8). A slot points to a WAV file on the SD car
 - **INFO:**
   - **DISTORTION:** YES = the firmware knows the distortion commands. With NO all DISTORTION entries are hidden.
   - **DX7 SD (FM):** YES = `fm.py` is on the board, DX7 FROM SD works.
+  - **NAV-LED:** number of the navigation encoder's LED (amyboard counts the LEDs of all devices consecutively) or NONE.
   - **TEMPO SYNC:** YES = the firmware knows the time-stretch (`fit`). With NO, TEMPO SYNC, SYNC FROM LEN and GRAIN SEARCH are hidden.
   - **MEMORY:** where the state is saved (`/sd/` or internally `/user/`).
   - **SD:** OK, REMOUNTED (remounted at startup), SWITCH (saving on the card failed) or the error reason. **SD REASON:** why the sketch last switched away from the card. **SD CLOCK:** STD or e.g. `10M PU`. **SD FREE:** free space.
@@ -566,7 +591,8 @@ If a note hangs: hold 2 s on HOME (PANIC).
   - **Set B for sound design:** PARAMETER such as cutoff, reso, 303 DRIVE and reverb.
   - A button with **ENC SET >** switches between the sets.
 - **LOAD ON PRESS:** pick the next patch while the bar plays and press right on the one. That way the change lands in time.
-- **LED colours:** AUTO shows the function. Fixed colours help when you group encoders by channel, e.g. all bass controls red.
+- **LED colours:** AUTO shows the function. With **CHANNEL** the PATCH encoders carry the same colour as the navigation encoder when that channel is selected – you find the right knob without looking. Dimmed LEDs (STATE) show muted channels and knobs without effect on the open page.
+- **BEAT on the navigation encoder:** the flash on every beat (bar 1 white) helps counting in for LOAD ON PRESS and starting in time with the KeyStep.
 - Put **MORPH A>B** on an encoder (group SEQ+SCENE). Save scene A as the calm part and scene B as the peak, then turn the transition by hand.
 
 ![SETUP › ENCODER with devices, set and assignment](img/en/screen_encoder.png)

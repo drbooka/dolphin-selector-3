@@ -1,6 +1,6 @@
 # Dolphin Selector 3 – Bedienungsanleitung
 
-Version 13.28 · Stand 27.10.2026 · AMYboard im Eurorack-Case
+Version 13.29 · Stand 28.10.2026 · AMYboard im Eurorack-Case
 
 ---
 
@@ -45,7 +45,29 @@ Dazu auf jeder Encoder-Seite: **JETZT** (aktueller Patch oder Wert), **TASTER** 
 - **LADEN AUF DRUCK** (für live): Drehen zeigt nur `K3 > 045 DRUCK` und den Namen, der Klang bleibt. Erst der Taster des Encoders lädt den Patch. In der Übersicht steht dann ein `*` hinter der Belegung. Der TASTER wird dabei automatisch auf KONTEXT gestellt.
 - Ist der Kanal der CHROM.-Kanal des Samplers, erscheint `K1 SAMPLER`. Ist eine Liste leer (z. B. noch keine Favoriten), erscheint `LISTE LEER`.
 
-**LED** (M5Stack und Quads): **AUTO** zeigt die Funktion als Farbe – SEITE weiß, PATCH blau, KANAL lila, AUS dunkel, PARAMETER nach Gruppe (MIXER und SEQ+SZENE gelb, KLANG und DRUMS orange, EFFEKTE grün, 303 rot, MODULAR cyan, AUDIO IN lila). Oder eine feste Farbe: AUS, ROT, ORANGE, GELB, GRUEN, CYAN, BLAU, LILA, WEISS.
+**LED** (M5Stack und Quads): **AUTO** zeigt die Funktion als Farbe – SEITE weiß, PATCH blau, KANAL lila, AUS dunkel, PARAMETER nach Gruppe (MIXER und SEQ+SZENE gelb, KLANG und DRUMS orange, EFFEKTE grün, 303 rot, MODULAR cyan, AUDIO IN lila). Oder eine feste Farbe: AUS, ROT, ORANGE, GELB, GRUEN, CYAN, BLAU, LILA, WEISS, oder **KANAL** (Farbe des Kanals: bei PATCH K3 die Farbe von Kanal 3, sonst die des aktuellen Kanals – dieselbe Farbe wie an der Navigation).
+
+**LEDs (v13.29)** – SETUP › ENCODER › **LEDS**. Alle LEDs zeigen jetzt, was gerade los ist:
+
+| Zeile | Wirkung |
+|---|---|
+| **SINGLE** | JA = die LED des Navigations-Encoders wird angesteuert |
+| **HELLIGKEIT** 1–4 | gilt für alle LEDs, 2 = wie bisher |
+| = NAVIGATION = | |
+| **FARBE** | Grundfarbe: **KANAL** (ab Werk, jeder der 16 Kanäle hat eine eigene Farbe) oder eine feste Farbe |
+| **EDIT** | solange ein Wert bearbeitet wird (großer Ring oder Auswahl): AUTO = weiß |
+| **TAKT** | Sequencer läuft: Blitz auf jeden Schlag, AUTO = Grundfarbe hell und Takt 1 weiß |
+| **KANAL-BLITZ** | beim Kanalwechsel kurz hell in der Farbe des neuen Kanals |
+| **PANIC** | beim Halten auf SPIELEN: AUTO = von gelb nach rot, bis PANIC auslöst |
+| **WARNUNG** | blinkt bei CLIP am AUDIO IN (solange die Seite offen ist), hoher CPU-Last oder einem Speicherfehler, AUTO = rot |
+| = ZUSATZ-ENC = | |
+| **ZUSTAND** | gedimmt = Encoder hat gerade keine Wirkung: SEITE ohne Wert auf dieser Seite, PATCH-Kanal stumm oder leer, PARAMETER ausgeblendet. LADEN AUF DRUCK vorgemerkt = blinkt. Funktion **AUS** mit Taster START/STOP, MUTE, AUDIO IN, TAP TEMPO oder ENC-SET: die LED zeigt den Taster (START grün: läuft hell, steht gedimmt · MUTE rot: stumm hell · AUDIO IN cyan · TAP blitzt im Takt · ENC-SET A weiß, B gelb, C lila) |
+| **DREH-BLITZ** | kurz heller beim Drehen |
+| = ALLGEMEIN = | |
+| **IM SCHONER** | AUS (ab Werk) = LEDs dunkel, solange der Bildschirmschoner läuft |
+| **LED-TEST** | alle LEDs 2,4 s rot, grün, blau, weiß |
+
+Bei jeder Anzeige schaltet **AUS** nur diese Anzeige ab. Vorrang an der Navigation: PANIC, Kanal-Blitz, Warnung, Takt, EDIT, Grundfarbe. Gesendet wird nur bei Änderung, während der Wiedergabe höchstens 3 LEDs pro Durchlauf, damit der Takt ruhig bleibt.
 
 **Encoder-Sets A/B/C:** drei komplette Belegungen (Funktion, Optionen, Taster, LED), z. B. eine für live und eine fürs Klangschrauben. Umschalten unter SETUP › ENCODER › **SET** (drehen, Druck aktiviert) oder per Taster-Funktion **ENC-SET >** (A → B → C → A). Ein neues Set startet als Kopie des bisherigen.
 
@@ -187,7 +209,9 @@ SPIELEN (Startseite)
     │
     └─ SETUP
         ├─ MIDI ─► MIDI THRU · MIDI OUT TYP (A/B) · CLOCK · MONITOR · RST ALL MIDI
-        ├─ ENCODER ─► GERAETE · SET (A/B/C) · DREHRICHTUNG · E1–E8 · Q1–Q8 (nur angeschlossene) · I2C-SCAN
+        ├─ ENCODER ─► GERAETE · SET (A/B/C) · DREHRICHTUNG · LEDS · E1–E8 · Q1–Q8 (nur angeschlossene) · I2C-SCAN
+        │   ├─ LEDS ─► SINGLE · HELLIGKEIT · FARBE · EDIT · TAKT · KANAL-BLITZ · PANIC · WARNUNG ·
+        │   │          ZUSTAND · DREH-BLITZ · IM SCHONER · LED-TEST
         │   └─ Ex/Qx ─► FUNKTION · KANAL · LISTE · LADEN · GRUPPE · WERT · JETZT · TASTER · LED
         ├─ MAKROS ─► MAKRO 1–4
         ├─ AUDIO (STEREO/MONO) · STIMMEN MAX · FAILSAFE
@@ -196,7 +220,7 @@ SPIELEN (Startseite)
         ├─ TAKT ─► SEQ-AUSGABE (DIREKT/VORAUS) · VORLAUF · VORAUS-TEST · UI-TAKT ·
         │          NOTLAUF · TRANSPORT · Status-Anzeigen
         ├─ SD EINBINDEN · SD ZUSTAND NEU · SD TEST
-        ├─ INFO ─► VERSION · ENCODER · ZUSATZ · JOYSTICK · DISTORTION · TAKT-SYNC · DX7 SD (FM) · I2C · RAM FREI ·
+        ├─ INFO ─► VERSION · ENCODER · ZUSATZ · JOYSTICK · DISTORTION · TAKT-SYNC · DX7 SD (FM) · NAV-LED · I2C · RAM FREI ·
         │          LAST · STIMMEN · SPEICHER · SD · SD-GRUND · SD-TAKT · SD FREI · SPEICH.FEHLER ·
         │          Messwerte (BOOT … BEDIENUNG MAX) · MESSUNG RESET
         └─ WERKSRESET
@@ -467,7 +491,7 @@ Der Sampler hat **8 Slots** (S1–S8). Ein Slot zeigt auf eine WAV-Datei auf der
 ### SETUP
 - **RST ALL MIDI** entfernt die Patches von allen Kanälen.
 - **MIDI › MONITOR** zeigt die letzten 8 MIDI-Ereignisse, die beim Sketch ankommen, neuestes oben: Kanal, Art (`N` Note, `CC`, `PC`) mit Nummer und rechts, was der Sketch damit gemacht hat – `PAD S1`, `SLICE 3`, `KANAL 1` oder ein Grund wie `S2 LEER`, `S1 KEINE SLICE`. Oben rechts zählt alle empfangenen Nachrichten (auch Clock). Druck leert die Liste.
-- **ENCODER:** **GERAETE** zeigt die erkannten Zusatz-Geräte (z. B. `M5+2QUAD`). **I2C-SCAN** listet jedes Gerät am Bus mit Adresse, erkanntem Typ und Seesaw-Produktnummer (P5752 = Quad). Fehlt ein Encoder im Menü, zeigt diese Liste, ob er überhaupt antwortet und als was er erkannt wird. Dazu SET, DREHRICHTUNG und die Übersicht aller angeschlossenen Encoder E1–E8 und Q1–Q8 (siehe Abschnitt 1).
+- **ENCODER:** **GERAETE** zeigt die erkannten Zusatz-Geräte (z. B. `M5+2QUAD`). **I2C-SCAN** listet jedes Gerät am Bus mit Adresse, erkanntem Typ und Seesaw-Produktnummer (P5752 = Quad). Fehlt ein Encoder im Menü, zeigt diese Liste, ob er überhaupt antwortet und als was er erkannt wird. Dazu SET, DREHRICHTUNG, **LEDS** und die Übersicht aller angeschlossenen Encoder E1–E8 und Q1–Q8 (siehe Abschnitt 1).
 - **FAILSAFE** begrenzt die Rechenlast. Bei Überlast werden Stimmen abgeschaltet statt zu knacken.
 - **DISPLAY:** **HELLIGKEIT** (Kontrast), **SCHONER NACH** (dimmt nach 1–30 min ohne Eingabe; die erste Eingabe weckt nur), **UPDATE** BAENDER = nur geänderte Bildteile senden (schont den Takt), VOLL = immer das ganze Bild (falls das Bild fehlerhaft ist).
 - **TAKT:**
@@ -481,6 +505,7 @@ Der Sampler hat **8 Slots** (S1–S8). Ein Slot zeigt auf eine WAV-Datei auf der
 - **INFO:**
   - **DISTORTION:** JA = die Firmware kennt die Distortion-Befehle. Bei NEIN sind alle DISTORTION-Einträge ausgeblendet.
   - **DX7 SD (FM):** JA = `fm.py` ist auf dem Board vorhanden, DX7 VON SD funktioniert.
+  - **NAV-LED:** Nummer der LED des Navigations-Encoders (amyboard zählt die LEDs aller Geräte fortlaufend) oder KEINE.
   - **TAKT-SYNC:** JA = die Firmware kennt den Time-Stretch (`fit`). Bei NEIN sind TAKT-SYNC, SYNC AUS LAENGE und GRAIN-SUCHE ausgeblendet.
   - **SPEICHER:** wo der Zustand gespeichert wird (`/sd/` oder intern `/user/`).
   - **SD:** OK, NEU EINGEH. (beim Start neu eingehängt), WECHSEL (Speichern auf der Karte gescheitert) oder der Fehlergrund. **SD-GRUND:** warum zuletzt von der Karte weggewechselt wurde. **SD-TAKT:** STD oder z. B. `10M PU`. **SD FREI:** freier Platz.
@@ -561,7 +586,8 @@ Hängt der Ton: auf SPIELEN 2 s halten (PANIC).
   - **Set B zum Klangschrauben:** PARAMETER wie Cutoff, Reso, 303 DRIVE und Reverb.
   - Ein Taster mit **ENC-SET >** schaltet zwischen den Sets um.
 - **LADEN AUF DRUCK:** Wähle den nächsten Patch schon während des Takts vor und drücke genau auf die Eins. So landet der Wechsel im Takt.
-- **LED-Farben:** AUTO zeigt die Funktion. Feste Farben helfen, wenn du Encoder nach Kanälen ordnest, z. B. alle Bass-Regler rot.
+- **LED-Farben:** AUTO zeigt die Funktion. Mit **KANAL** tragen die PATCH-Encoder dieselbe Farbe wie die Navigation, wenn dieser Kanal gewählt ist – so findest du den richtigen Regler ohne hinzusehen. Gedimmte LEDs (ZUSTAND) zeigen stumme Kanäle und Regler ohne Wirkung auf der offenen Seite.
+- **TAKT an der Navigation:** Der Blitz auf jeden Schlag (Takt 1 weiß) hilft beim Einzählen für LADEN AUF DRUCK und beim Starten im Takt mit dem KeyStep.
 - **MORPH A>B** auf einen Encoder legen (Gruppe SEQ+SZENE). Speichere Szene A als ruhigen Teil und Szene B als Höhepunkt, dann drehst du den Übergang von Hand.
 
 ![SETUP › ENCODER mit Geräten, Set und Belegung](img/de/screen_encoder.png)
